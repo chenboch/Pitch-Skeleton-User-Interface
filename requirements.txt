@@ -9,8 +9,8 @@ Pillow
 thop
 ninja
 tabulate
-tensorboard
-lap
+# tensorboard
+# lap
 motmetrics
 filterpy
 h5py

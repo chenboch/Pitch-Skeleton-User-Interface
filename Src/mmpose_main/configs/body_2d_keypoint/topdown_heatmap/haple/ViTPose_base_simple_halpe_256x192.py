@@ -1,4 +1,3 @@
-
 default_scope = 'mmpose'
 
 # custom hooks

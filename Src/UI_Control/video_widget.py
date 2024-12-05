@@ -8,8 +8,6 @@ import os
 from video_ui import Ui_video_widget
 import matplotlib.pyplot as plt
 import pandas as pd
-import cv2
-import numpy as np
 from utils.vis_image import ImageDrawer
 from utils.selector import PersonSelector, KptSelector
 from cv_utils.cv_control import VideoLoader, JsonLoader
@@ -39,7 +37,6 @@ class PoseVideoTabControl(QWidget):
         self.curve_scene.clear()
         self.correct_kpt_idx = 0
         self.is_processed = False
-        
         pg.setConfigOptions(foreground=QColor(113,148,116), antialias = True)
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')

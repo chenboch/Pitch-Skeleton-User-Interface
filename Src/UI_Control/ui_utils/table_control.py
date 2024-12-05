@@ -35,8 +35,8 @@ class KeypointTable:
     def setTableItem(self, row: int, kpt_name: str, kptx: float, kpty: float, kpt_label: bool):
         """Set items in the table for the given row."""
         kpt_name_item = QTableWidgetItem(str(kpt_name))
-        kptx_item = QTableWidgetItem(str(np.round(kptx, 1)))
-        kpty_item = QTableWidgetItem(str(np.round(kpty, 1)))
+        kptx_item = QTableWidgetItem(str(int(kptx)))
+        kpty_item = QTableWidgetItem(str(int(kpty)))
         kpt_label_item = QTableWidgetItem("Y" if kpt_label else "N")
 
         for item in [kpt_name_item, kptx_item, kpty_item, kpt_label_item]:

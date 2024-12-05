@@ -116,12 +116,12 @@ class PoseEstimater:
                 "left_points_indices": [[5, 18], [5, 7], [7, 9],[19, 11], [11, 13], [13, 15], [20, 24], [22, 24], [15, 24]],  # Indices of left hand, leg, and foot keypoints
                 "right_points_indices": [[6, 18], [6, 8], [8, 10], [19, 12], [12, 14], [14, 16], [21, 25], [23, 25], [16, 25]],  # Indices of right hand, leg, and foot keypoints
                 "angle_dict":{
-                    # 'l_elbow_angle': [5, 7, 9],
-                    '右手肘': [6, 8, 10]
-                    # 'l_shoulder_angle': [18, 5, 7],
-                    # 'r_shoulder_angle': [18, 6, 8],
-                    # 'l_knee_angle': [11, 13, 15],
-                    # 'r_knee_angle': [12, 14, 16]
+                    '左手肘': [5, 7, 9],
+                    '右手肘': [6, 8, 10],
+                    '左肩': [11, 5, 7],
+                    '右肩': [12, 6, 8],
+                    '左膝': [11, 13, 15],
+                    '右膝': [12, 14, 16]
                 }
             },
         }

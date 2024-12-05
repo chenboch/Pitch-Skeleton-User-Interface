@@ -23,7 +23,7 @@ class PoseAnalyzer:
             'frame_number': frame_num,
             'angle': self._update_analyze_information(person_kpt)
         }
-
+        # print(info)
         if frame_num not in self.processed_frames:
             self.processed_frames.add(frame_num)
             self.analyze_info.append(info)

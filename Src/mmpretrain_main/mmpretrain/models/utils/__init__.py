@@ -3,7 +3,7 @@ from mmpretrain.utils.dependency import WITH_MULTIMODAL
 from .attention import (BEiTAttention, ChannelMultiheadAttention,
                         CrossMultiheadAttention, LeAttention,
                         MultiheadAttention, PromptMultiheadAttention,
-                        ShiftWindowMSA, WindowMSA, WindowMSAV2)
+                        ShiftWindowMSA, WindowMSA, WindowMSAV2, GatedAttention)
 from .batch_augments import CutMix, Mixup, RandomBatchAugment, ResizeMix
 from .batch_shuffle import batch_shuffle_ddp, batch_unshuffle_ddp
 from .channel_shuffle import channel_shuffle
@@ -88,6 +88,7 @@ __all__ = [
     'SparseBatchNorm2d',
     'SparseLayerNorm2D',
     'SparseSyncBatchNorm2d',
+    'GatedAttention',
 ]
 
 if WITH_MULTIMODAL:
