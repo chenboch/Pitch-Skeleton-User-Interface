@@ -13,6 +13,9 @@ from mmpose.evaluation.functional import nms
 from mmpose.structures import merge_data_samples
 from utils.timer import FPSTimer
 
+import torch.autograd.profiler as profiler
+import torch
+from torch.profiler import profile, ProfilerActivity
 import torch
 import torch.autograd.profiler as profiler
 
@@ -265,9 +268,10 @@ class PoseEstimater:
     
         # 過濾出有效的邊界框和追蹤ID
         online_bbox, online_ids = self.filterValidTargets(online_targets, select_id)
-
         # 姿態估計
+        # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
         pose_results = inference_topdown(model.pose_estimator, img, np.array(online_bbox))
+        # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
         data_samples = merge_data_samples(pose_results)
         
     
