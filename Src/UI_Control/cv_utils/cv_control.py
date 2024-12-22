@@ -120,6 +120,7 @@ class VideoLoader:
         self.video_path = video_path
         self.video_name = os.path.splitext(os.path.basename(self.video_path))[0]
         self.folder_path = os.path.dirname(video_path)
+        print(self.video_name)
         self.is_loading = True
         self.v_t = VideoToImagesThread(self.video_path)
         self.v_t.emit_signal.connect(self.video_to_frame)
@@ -142,27 +143,25 @@ class VideoLoader:
         return self.video_frames[frame_num].copy()
     
     def saveVideo(self):
-        # 提取相对路径 "MOTION A/a1"
-        relative_path = os.path.relpath(self.folder_path, start="C:/Users/user/Desktop/Pitch-Skeleton-User-Interface/Db/Db_KCGM_Baseball")
+        # # 提取相对路径 "MOTION A/a1"
+        # relative_path = os.path.relpath(self.folder_path, start="C:/Users/user/Desktop/Pitch-Skeleton-User-Interface/Db/Db_KCGM_Baseball")
 
-        # 将空格替换为下划线
-        formatted_path = relative_path.replace(" ", "_")
-        print(formatted_path)
-        fm_path = formatted_path.replace("\\", "_")
-
-        formatted_path = formatted_path.replace("\\", "/")
+        # # 将空格替换为下划线
+        # formatted_path = relative_path.replace(" ", "_")
+        # fm_path = formatted_path.replace("\\", "_")
+        # formatted_path = formatted_path.replace("\\", "/")
         
 
         output_folder = os.path.join("../../Db/Record", self.video_name)
         ann_folder = os.path.join("../../Db/Data/annotations/train")
-        img_folder = os.path.join("../../Db/Data/images/train", formatted_path+"/"+self.video_name)
+        img_folder = os.path.join("../../Db/Data/images", self.video_name)
        
         os.makedirs(output_folder, exist_ok=True)
         os.makedirs(img_folder, exist_ok=True)
         os.makedirs(ann_folder,exist_ok=True)
         json_path = os.path.join(output_folder, f"{self.video_name}.json")
 
-        json_ann_path =  os.path.join(ann_folder, f"{fm_path}_{self.video_name}.json")
+        json_ann_path =  os.path.join(ann_folder, f"{self.video_name}.json")
 
         save_person_df = self.image_drawer.pose_estimater.person_df
 

@@ -3,14 +3,16 @@ import pandas as pd
 from utils.one_euro_filter import OneEuroFilter
 import os
 import sys
-import numpy as np
 from utils.model import Model
-from mmengine.logging import print_log
 from scipy.signal import savgol_filter
 from mmpose.apis import inference_topdown
-from mmpose.apis import init_model as init_pose_estimator
 from mmpose.evaluation.functional import nms
-from mmpose.structures import merge_data_samples
+from mmpose.structures import (PoseDataSample, merge_data_samples,
+                               split_instances)
+from mmpose.apis import (convert_keypoint_definition, extract_pose_sequence,
+                         inference_pose_lifter_model, inference_topdown,
+                         init_model)
+
 from utils.timer import FPSTimer
 
 import torch.autograd.profiler as profiler
@@ -155,17 +157,16 @@ class PoseEstimater:
 
         return pd.DataFrame(self.person_data)
   
-    def detectKpt(self, image:np.ndarray, frame_num:int = None, is_video:bool = False, is_processed:bool=False):
+    def detectKpt(self, image:np.ndarray, frame_num:int = None, is_video:bool = False, is_3d:bool=False):
         if not self.is_detect:
             return image, pd.DataFrame(), 0
 
         fps = 0
         self.fps_timer.tic()
-        # if not is_processed:
         if is_video: 
             #影片處理方式
             if frame_num not in self.processed_frames:
-                pred_instances, person_ids = self.processImage(self.model, image, select_id=self.person_id)
+                pred_instances, person_ids = self.processImage(self.model, image, is_3d, select_id=self.person_id)
                 self.person_df = self.mergePersonData(pred_instances, person_ids, frame_num)
                 self.smoothKpt(person_ids, frame_num)
                 self.processed_frames.add(frame_num)
@@ -173,7 +174,7 @@ class PoseEstimater:
                 self.kpt_buffer = self.updateKptBuffer(frame_num)
         else:
             #real time 處理方式
-            pred_instances, person_ids = self.processImage(self.model, image, select_id=self.person_id)
+            pred_instances, person_ids = self.processImage(self.model, image, is_3d, select_id=self.person_id)
             self.person_df = self.mergePersonData(pred_instances, person_ids)
             self.smoothKpt(person_ids, frame_num)
             self.pre_person_df = self.person_df.copy()
@@ -186,7 +187,7 @@ class PoseEstimater:
         average_time = self.fps_timer.toc()
         fps = int(1/max(average_time, 0.00001))
         fps = fps if fps < 100 else 0
-        return image, self.person_df, fps
+        return fps
 
     def smoothKpt(self, person_ids: list, frame_num=None):
         # 如果是即時處理，則初始化前一幀的數據，否則依賴 frame_slider 進行處理
@@ -237,7 +238,7 @@ class PoseEstimater:
             # 更新當前幀的數據
             self.person_df.at[curr_person_data.index[0], 'keypoints'] = smoothed_kpts
            
-    def processImage(self, model, img, select_id=None):
+    def processImage(self, model, img, is_3d, select_id=None):
         """
         處理單張圖像，進行物件偵測、跟蹤和姿態估計。
 
@@ -270,13 +271,83 @@ class PoseEstimater:
         online_bbox, online_ids = self.filterValidTargets(online_targets, select_id)
         # 姿態估計
         # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-        pose_results = inference_topdown(model.pose_estimator, img, np.array(online_bbox))
+        pose_results = inference_topdown(model.pose2d_estimator, img, np.array(online_bbox))
         # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
         data_samples = merge_data_samples(pose_results)
-        
+        if select_id and is_3d:
+            
+            self.process_pose3d(img, data_samples, model)
+
     
         return data_samples.get('pred_instances', None), online_ids
+
+    def process_pose3d(self, img, data_sample, model):
+        pose_est_results_list = []
+        pose_det_dataset_name = model.pose2d_estimator.dataset_meta['dataset_name']
+        pose_lift_dataset_name = model.pose3d_estimator.dataset_meta['dataset_name']
+        pose_lift_dataset = model.pose3d_estimator.cfg.test_dataloader.dataset
+        pose_est_results_converted = []
+        pred_instances = data_sample.pred_instances.cpu().numpy()
+        keypoints = pred_instances.keypoints
     
+            # convert keypoints for pose-lifting
+        pose_est_result_converted = PoseDataSample()
+        pose_est_result_converted.set_field(
+            pred_instances.clone(), 'pred_instances')
+        pose_est_result_converted.set_field(
+            data_sample.gt_instances.clone(), 'gt_instances')
+        keypoints = convert_keypoint_definition(keypoints,
+                                                pose_det_dataset_name,
+                                                pose_lift_dataset_name)
+        pose_est_result_converted.pred_instances.set_field(keypoints, 'keypoints')
+        pose_est_result_converted.set_field(self.person_id,'track_id')
+        pose_est_results_converted.append(pose_est_result_converted)
+        pose_est_results_list.append(pose_est_results_converted.copy())
+        pose_seq_2d = extract_pose_sequence(
+            pose_est_results_list,
+            frame_idx=0,
+            causal=pose_lift_dataset.get('causal', False),
+            seq_len=pose_lift_dataset.get('seq_len', 1),
+            step=pose_lift_dataset.get('seq_step', 1))
+
+        # conduct 2D-to-3D pose lifting
+        norm_pose_2d = not model.pose3d_args.disable_norm_pose_2d
+        pose_lift_results = inference_pose_lifter_model(
+            model.pose3d_estimator,
+            pose_seq_2d,
+            image_size=img.shape[:2],
+            norm_pose_2d=norm_pose_2d)
+        for idx, pose_lift_result in enumerate(pose_lift_results):
+            pose_lift_result.track_id = self.person_id
+
+            pred_instances = pose_lift_result.pred_instances
+            keypoints = pred_instances.keypoints
+            keypoint_scores = pred_instances.keypoint_scores
+            if keypoint_scores.ndim == 3:
+                keypoint_scores = np.squeeze(keypoint_scores, axis=1)
+                pose_lift_results[
+                    idx].pred_instances.keypoint_scores = keypoint_scores
+            if keypoints.ndim == 4:
+                keypoints = np.squeeze(keypoints, axis=1)
+
+            keypoints = keypoints[..., [0, 2, 1]]
+            keypoints[..., 0] = -keypoints[..., 0]
+            keypoints[..., 2] = -keypoints[..., 2]
+
+            # rebase height (z-axis)
+            if not model.pose3d_args.disable_rebase_keypoint:
+                keypoints[..., 2] -= np.min(
+                    keypoints[..., 2], axis=-1, keepdims=True)
+
+            pose_lift_results[idx].pred_instances.keypoints = keypoints
+
+        pose_lift_results = sorted(
+            pose_lift_results, key=lambda x: x.get('track_id', 1e4))
+
+        pred_3d_data_samples = merge_data_samples(pose_lift_results)
+        pred_3d_instances = pred_3d_data_samples.get('pred_instances', None)
+
+
     def filterValidTargets(self, online_targets, select_id: int = None):
         """
         過濾出有效的追蹤目標。

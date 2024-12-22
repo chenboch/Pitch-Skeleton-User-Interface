@@ -270,6 +270,7 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
                     pred_instances.bboxes * 0, 'bboxes')
                 pose_est_results[i].set_field(pred_instances, 'pred_instances')
                 track_id = -1
+        
         pose_est_results[i].set_field(track_id, 'track_id')
 
         # convert keypoints for pose-lifting

@@ -7,7 +7,10 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(current_dir, "../..", "tracker"))
 from tracker.mc_bot_sort import BoTSORT
 from tracker.tracking_utils.timer import Timer
-from mmpose.apis import init_model as init_pose_estimator
+from mmpose.apis import (_track_by_iou, _track_by_oks,
+                         convert_keypoint_definition, extract_pose_sequence,
+                         inference_pose_lifter_model, inference_topdown,
+                         init_model)
 from mmpose.utils import adapt_mmdet_pipeline
 try:
     from mmdet.apis import inference_detector, init_detector
@@ -21,7 +24,8 @@ except (ImportError, ModuleNotFoundError):
 class Model(object):
     def __init__(self):
         self.detect_args = self.setDetectParser()
-        self.pose_args = self.setPoseParser()
+        self.pose2d_args = self.setPose2DParser()
+        self.pose3d_args = self.setPose3DParser()
         self.tracker_args = self.setTrackerParser()
         self.detector = init_detector(
         self.detect_args.det_config, self.detect_args.det_checkpoint, device=self.detect_args.device)
@@ -29,10 +33,15 @@ class Model(object):
             0].type = 'mmdet.LoadImageFromNDArray'
         self.detector_test_pipeline = Compose(self.detector.cfg.test_dataloader.dataset.pipeline)
 
-        self.pose_estimator = init_pose_estimator(
-            self.pose_args.pose_config,
-            self.pose_args.pose_checkpoint
+        self.pose2d_estimator = init_model(
+            self.pose2d_args.pose_config,
+            self.pose2d_args.pose_checkpoint
         )
+        self.pose3d_estimator = init_model(
+            self.pose3d_args.pose_lifter_config,
+            self.pose3d_args.pose_lifter_checkpoint,
+            device=self.pose3d_args.device.lower())
+
         self.tracker = BoTSORT(self.tracker_args, frame_rate=30.0)
         self.image_size = (0,0,0)
 
@@ -59,35 +68,10 @@ class Model(object):
             type=float,
             default=0.3,
             help='Visualizing keypoint thresholds')
-        parser.add_argument(
-            '--draw-heatmap',
-            action='store_true',
-            default=False,
-            help='Draw heatmap predicted by the model')
-        parser.add_argument(
-            '--show-kpt-idx',
-            action='store_true',
-            default=False,
-            help='Whether to show the index of keypoints')
-        parser.add_argument(
-            '--skeleton-style',
-            default='mmpose',
-            type=str,
-            choices=['mmpose', 'openpose'],
-            help='Skeleton style selection')
-        parser.add_argument(
-            '--radius',
-            type=int,
-            default=3,
-            help='Keypoint radius for visualization')
-        parser.add_argument(
-            '--show-interval', type=int, default=0, help='Sleep seconds per frame')
-        parser.add_argument(
-            '--alpha', type=float, default=0.8, help='The transparency of bboxes')
         args = parser.parse_args()
         return args
 
-    def setPoseParser(self) -> ArgumentParser:
+    def setPose2DParser(self) -> ArgumentParser:
         parser = ArgumentParser()
         parser.add_argument('--pose-config', default='../mmpose_main/configs/body_2d_keypoint/topdown_heatmap/haple/ViTPose_base_simple_halpe_256x192.py', help='Config file for pose')
         parser.add_argument('--pose-checkpoint', default='../../Db/pretrain/epoch_240.pth', help='Checkpoint file for pose')
@@ -98,25 +82,54 @@ class Model(object):
             type=float,
             default=0.3,
             help='Visualizing keypoint thresholds')
-        parser.add_argument(
-            '--show-kpt-idx',
-            action='store_true',
-            default=False,
-            help='Whether to show the index of keypoints')
-        parser.add_argument(
-            '--skeleton-style',
-            default='mmpose',
-            type=str,
-            choices=['mmpose', 'openpose'],
-            help='Skeleton style selection')
-        parser.add_argument(
-            '--radius',
-            type=int,
-            default=3,
-            help='Keypoint radius for visualization')
         args = parser.parse_args()
         return args
-
+    
+    def setPose3DParser(self) -> ArgumentParser:
+        parser = ArgumentParser()
+        parser.add_argument(
+            '--pose_lifter_config',
+            default='../mmpose_main/configs/body_3d_keypoint/motionbert/h36m/motionbert_dstformer-ft-243frm_8xb32-120e_h36m.py',
+            help='Config file for the 2nd stage pose lifter model')
+        parser.add_argument(
+            '--pose_lifter_checkpoint',
+            default='../../Db/pretrain/motionbert_ft_h36m-d80af323_20230531.pth',
+            help='Checkpoint file for the 2nd stage pose lifter model')
+        parser.add_argument(
+            '--disable-rebase-keypoint',
+            action='store_true',
+            default=False,
+            help='Whether to disable rebasing the predicted 3D pose so its '
+            'lowest keypoint has a height of 0 (landing on the ground). Rebase '
+            'is useful for visualization when the model do not predict the '
+            'global position of the 3D pose.')
+        parser.add_argument(
+            '--disable-norm-pose-2d',
+            action='store_true',
+            default=False,
+            help='Whether to scale the bbox (along with the 2D pose) to the '
+            'average bbox scale of the dataset, and move the bbox (along with the '
+            '2D pose) to the average bbox center of the dataset. This is useful '
+            'when bbox is small, especially in multi-person scenarios.')
+        parser.add_argument(
+            '--num-instances',
+            type=int,
+            default=1,
+            help='The number of 3D poses to be visualized in every frame. If '
+            'less than 0, it will be set to the number of pose results in the '
+            'first frame.')
+        parser.add_argument(
+            '--device', default='cuda:0', help='Device used for inference')
+        parser.add_argument(
+            '--online',
+            action='store_true',
+            default=False,
+            help='Inference mode. If set to True, can not use future frame'
+            'information when using multi frames for inference in the 2D pose'
+            'detection stage. Default: False.')
+        args = parser.parse_args()
+        return args
+    
     def setTrackerParser(self) -> ArgumentParser:
         parser = ArgumentParser()
         # tracking args
