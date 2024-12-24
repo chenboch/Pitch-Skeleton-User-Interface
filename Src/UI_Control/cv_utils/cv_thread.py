@@ -6,7 +6,6 @@ import cv2
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget
-from utils.timer import Timer
 
 
 class VideoToImagesThread(QThread):

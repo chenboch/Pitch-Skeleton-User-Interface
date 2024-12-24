@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'c:\Users\user\Desktop\Pitch-Skeleton-User-Interface\Src\UI_Control\Pose2DTab\Pitch_Widget\UI.ui'
+# Form implementation generated from reading ui file 'c:\Users\user\Desktop\Pitch-Skeleton-User-Interface\Src\UI_Control\BaseTab\Pitch_Widget\pitch.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #

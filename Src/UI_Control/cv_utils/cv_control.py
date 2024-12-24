@@ -5,8 +5,8 @@ import os
 import pandas as pd
 from enum import Enum
 from PyQt5.QtWidgets import QGraphicsScene
-from utils.vis_image import ImageDrawer
-from cv_utils.cv_thread import VideoCaptureThread, VideoWriterThread, VideoToImagesThread
+from ..vis_utils.vis_image import ImageDrawer
+from .cv_thread import VideoCaptureThread, VideoWriterThread, VideoToImagesThread
 from PyQt5.QtWidgets import *
 
 class Camera:

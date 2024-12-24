@@ -1,42 +1,44 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QColor, QImage, QPixmap, QFont
-from PyQt5.QtCore import Qt, QPointF, QTimer
+from PyQt5.QtCore import Qt, QObject, QTimer
+from typing import Optional
 import numpy as np
 import sys
 import cv2
-import os
-from Pose2DTab.Video_Widget.UI_ui import Ui_Video_Widget
-import matplotlib.pyplot as plt
-import pandas as pd
-from utils.vis_image import ImageDrawer
-from utils.selector import PersonSelector, KptSelector
-from cv_utils.cv_control import VideoLoader, JsonLoader
-from skeleton.detect_skeleton import PoseEstimater
-from ui_utils.table_control import KeypointTable
-from utils.vis_graph import GraphPlotter
-from utils.analyze import PoseAnalyzer
-from utils.model import Model
-import pyqtgraph as pg
+from ..utils import *
+from ..cv_utils import *
+from skeleton import Wrapper
+from ..vis_utils import *
 
-class PoseVideoTabControl(QWidget):
-    def __init__(self, model:Model, parent = None):
-        super(PoseVideoTabControl, self).__init__(parent)
-        self.ui = Ui_Video_Widget()
-        self.ui.setupUi(self)
-        self.model = model
-        self.setupComponents()
-        self.initVar()
-        self.bindUI()
-        
-    def initVar(self):
-        self.is_play = False
-        self.is_video = False
+import pyqtgraph as pg
+from abc import ABC ,ABCMeta, abstractmethod
+from sip import wrapper  # 引入 PyQt5 的內建 metaclass
+
+class SipABCMeta(ABCMeta, type(wrapper)):
+    """結合 ABCMeta 和 sip.wrapper 的 metaclass。"""
+    pass
+
+# 定義抽象功能類
+class AbstractPoseBase(QObject, metaclass=SipABCMeta):
+    @abstractmethod
+    def setup_pose_estimater(self):
+        pass
+
+class BasePoseVideoTab(QWidget, AbstractPoseBase):
+    def __init__(self, wrapper:Wrapper, parent: Optional[QWidget] = None):
+        super(BasePoseVideoTab, self).__init__(parent)
+        self.ui = None
+        self.wrapper = wrapper
+        self.is_processed = False
         self.view_scene = QGraphicsScene()
         self.curve_scene = QGraphicsScene()
+        self.setupComponents()
+        self.initVar()
+
+    def initVar(self):
+        self.is_play = False
         self.view_scene.clear()
         self.curve_scene.clear()
-        self.correct_kpt_idx = 0
-        self.is_processed = False
         pg.setConfigOptions(foreground=QColor(113,148,116), antialias = True)
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('foreground', 'k')
@@ -61,31 +63,6 @@ class PoseVideoTabControl(QWidget):
         total_frames = self.video_loader.total_frames
         self.graph_plotter._init_graph(total_frames) 
         self.showGraph(self.curve_scene, self.ui.CurveView)
-
-    def bindUI(self):
-        self.ui.loadOriginalVideoBtn.clicked.connect(
-            lambda: self.loadVideo(is_processed=False))
-        self.ui.loadProcessedVideoBtn.clicked.connect(
-            lambda: self.loadVideo(is_processed=True))
-        
-        self.ui.playBtn.clicked.connect(self.playBtnClicked)
-        self.ui.backKeyBtn.clicked.connect(
-            lambda: self.ui.frameSlider.setValue(self.ui.frameSlider.value() - 1)
-        )
-        self.ui.forwardKeyBtn.clicked.connect(
-            lambda: self.ui.frameSlider.setValue(self.ui.frameSlider.value() + 1)
-        )
-        self.ui.frameSlider.valueChanged.connect(self.analyzeFrame)
-        self.kpt_table = KeypointTable(self.ui.KptTable,self.pose_estimater)
-        self.ui.KptTable.cellActivated.connect(self.kpt_table.onCellClicked)
-        self.ui.FrameView.mousePressEvent = self.mousePressEvent
-        self.ui.IdCorrectBtn.clicked.connect(self.correctId)
-        self.ui.startCodeBtn.clicked.connect(self.toggleDetect)
-        self.ui.selectCheckBox.stateChanged.connect(self.toggleSelect)
-        self.ui.showSkeletonCheckBox.stateChanged.connect(self.toggleShowSkeleton)
-        self.ui.selectKptCheckBox.stateChanged.connect(self.toggleKptSelect)
-        self.ui.showBboxCheckBox.stateChanged.connect(self.toggleShowBbox)
-        self.ui.showAngleCheckBox.stateChanged.connect(self.toggleShowAngleInfo)
 
     def playBtnClicked(self):
         if self.video_loader.video_name == "":
@@ -136,10 +113,9 @@ class PoseVideoTabControl(QWidget):
             super().keyPressEvent(event)
 
     def setupComponents(self): 
+        self.setup_pose_estimater()  # 由子類別提供具體的 pose_estimater
         self.person_selector = PersonSelector()
         self.kpt_selector = KptSelector()
-        self.pose_estimater = PoseEstimater(self.model)
-        
         self.pose_analyzer = PoseAnalyzer(self.pose_estimater)
         self.graph_plotter = GraphPlotter(self.pose_analyzer)
         self.image_drawer = ImageDrawer(self.pose_estimater, self.pose_analyzer)
@@ -187,7 +163,7 @@ class PoseVideoTabControl(QWidget):
         self.initFrameSlider()
         self.initGraph()
         self.updateFrame(0)
-        self.model.setImageSize(self.video_loader.video_size)
+        self.wrapper.setImageSize(self.video_loader.video_size)
         self.ui.videoNameLabel.setText(self.video_loader.video_name)
         video_size = self.video_loader.video_size
         self.ui.ResolutionLabel.setText(f"(0,0) - {video_size[0]} x {video_size[1]}")
@@ -229,7 +205,7 @@ class PoseVideoTabControl(QWidget):
         frame_num = self.ui.frameSlider.value()
         self.ui.frameNumLabel.setText(f'{frame_num}/{len(self.video_loader.video_frames) - 1}')
         frame = self.video_loader.getVideoImage(frame_num)
-        fps= self.pose_estimater.detectKpt(frame, frame_num, is_video=True, is_processed=self.is_processed)
+        fps= self.pose_estimater.detectKpt(frame, frame_num)
         self.ui.FPSInfoLabel.setText(f"{fps:02d}")
 
         if self.pose_estimater.person_id is not None:
@@ -249,7 +225,7 @@ class PoseVideoTabControl(QWidget):
     def toggleDetect(self):
         self.ui.showSkeletonCheckBox.setChecked(True)
         frame = self.video_loader.getVideoImage(0)
-        fps = self.pose_estimater.detectKpt(frame, 0, is_video=True)
+        fps = self.pose_estimater.detectKpt(frame, 0)
         self.ui.playBtn.click()
 
     def toggleSelect(self, state:int):
@@ -306,9 +282,3 @@ class PoseVideoTabControl(QWidget):
         self.pose_estimater.correct_person_id(before_correctId, after_correctId)
         self.updateFrame(self.ui.frameSlider.value())
 
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = PoseVideoTabControl()
-    window.show()
-    sys.exit(app.exec_())

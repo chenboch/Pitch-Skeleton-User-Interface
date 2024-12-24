@@ -5,16 +5,15 @@ import numpy as np
 import sys
 import cv2
 import os
-from Pose2DTab.Camera_Widget.UI_ui import Ui_Camera_UI
+from .camera_ui import Ui_Camera_UI
 from datetime import datetime
-from cv_utils.cv_control import Camera
-from utils.selector import PersonSelector, KptSelector
-from utils.vis_image import ImageDrawer
-from skeleton.detect_skeleton import PoseEstimater
-from utils.model import Model
+from ...cv_utils.cv_control import Camera
+from ...utils.selector import PersonSelector, KptSelector
+from ...vis_utils.vis_image import ImageDrawer
+from skeleton import (CameraPoseEstimater, Wrapper)
 
 class PoseCameraTabControl(QWidget):
-    def __init__(self, model:Model, parent=None):
+    def __init__(self, model:Wrapper, parent=None):
         super().__init__(parent)
         self.ui = Ui_Camera_UI()
         self.ui.setupUi(self)
@@ -34,7 +33,7 @@ class PoseCameraTabControl(QWidget):
         """Initialize the pose estimator and related components."""
         self.person_selector = PersonSelector()
         self.kpt_selector = KptSelector()
-        self.pose_estimater = PoseEstimater(self.model)
+        self.pose_estimater = CameraPoseEstimater(self.model)
         self.image_drawer = ImageDrawer(self.pose_estimater)
 
     def bindUI(self):

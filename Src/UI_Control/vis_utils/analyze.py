@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
-from skeleton.detect_skeleton import PoseEstimater
+from skeleton.datasets.halpe26 import halpe26_keypoint_info
 
 class PoseAnalyzer:
-    def __init__(self, pose_estimater:PoseEstimater):
+    def __init__(self, pose_estimater):
         self.pose_estimater = pose_estimater
-        self.angle_dict = self.pose_estimater.joints['haple']['angle_dict']
+        self.angle_dict = halpe26_keypoint_info['angle_dict']
         self.analyze_info = []
         self.analyze_df = pd.DataFrame()
         self.processed_frames = set()

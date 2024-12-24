@@ -2,8 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 import numpy as np
 from PyQt5.QtGui import QImage, QPixmap, QColor
-from cv_utils.cv_control import VideoLoader
-from skeleton.detect_skeleton import PoseEstimater
+from cv_utils import VideoLoader
 
 
 class FrameView:

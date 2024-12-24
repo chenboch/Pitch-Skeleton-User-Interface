@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, QTimer
 import numpy as np
 import sys
 import os
-from Pose2DTab.Pitch_Widget.UI_ui import Ui_Pitch_UI
+from Pose2DTab.Pitch_Widget.pitch_ui import Ui_Pitch_UI
 from datetime import datetime
 from utils.timer import Timer
 from cv_utils.cv_control import Camera, VideoLoader
@@ -13,8 +13,8 @@ from utils.analyze import PoseAnalyzer, JointAreaChecker
 from ui_utils.table_control import KeypointTable
 from ui_utils.graphicview_control import FrameView
 import cv2
-from utils.vis_graph import GraphPlotter
-from utils.vis_image import ImageDrawer
+from UI_Control.vis_utils.vis_graph import GraphPlotter
+from UI_Control.vis_utils.vis_image import ImageDrawer
 from skeleton.detect_skeleton import PoseEstimater
 import pyqtgraph as pg
 from utils.model import Model

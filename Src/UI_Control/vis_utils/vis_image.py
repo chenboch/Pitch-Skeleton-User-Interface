@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 from .analyze import PoseAnalyzer
-from skeleton.detect_skeleton import PoseEstimater
 import os
 from scipy.signal import savgol_filter
-from utils.timer import Timer
+# from utils.timer import Timer
+from skeleton.datasets import halpe26_keypoint_info
 import sys
 import time
 
@@ -26,9 +26,9 @@ else:
     application_path = os.path.dirname(__file__)
 
 class ImageDrawer():
-    def __init__(self, pose_estimater: PoseEstimater=None, pose_analyzer:PoseAnalyzer=None, angle_name:str = "右手肘"):
-        self.font_path = os.path.join(application_path, 'R-PMingLiU-TW-2.ttf')
-        self.fontStyle = ImageFont.truetype(self.font_path, 20)
+    def __init__(self, pose_estimater=None, pose_analyzer:PoseAnalyzer=None, angle_name:str = "右手肘"):
+        # self.font_path = os.path.join(application_path, 'R-PMingLiU-TW-2.ttf')
+        # self.fontStyle = ImageFont.truetype(self.font_path, 20)
         self.pose_estimater = pose_estimater
         self.pose_analyzer = pose_analyzer
         self.angle_name = angle_name
@@ -41,7 +41,7 @@ class ImageDrawer():
         self.angle_info_pos = (0,0)
         self.region = [(100, 250), (450, 600)]
 
-        self.timer = None
+        # self.timer = None
     
     def drawInfo(self, img:np.ndarray, frame_num:int=None, kpt_buffer:list = None, countdown_time:int = None):
         if img is None:
@@ -64,7 +64,7 @@ class ImageDrawer():
             image = self.drawBbox(image, curr_person_df)
         
         if self.show_skeleton:
-            image = self.drawPointsandSkeleton(image, curr_person_df, self.pose_estimater.joints['haple']['skeleton_links'], 
+            image = self.drawPointsandSkeleton(image, curr_person_df, halpe26_keypoint_info['skeleton_links'], 
                                                 points_palette_samples=10)
         
         if self.show_traj:
@@ -242,8 +242,8 @@ class ImageDrawer():
             colors = np.round(
                 np.array(plt.get_cmap(color_palette)(np.linspace(0, 1, palette_samples))) * 255
             ).astype(np.uint8)[:, -2::-1].tolist()
-        right_skeleton = self.pose_estimater.joints['haple']['right_points_indices']
-        left_skeleton = self.pose_estimater.joints['haple']['left_points_indices']
+        right_skeleton = halpe26_keypoint_info['right_points_indices']
+        left_skeleton = halpe26_keypoint_info['left_points_indices']
         
         for i, joint in enumerate(skeleton):
             pt1, pt2 = points[joint]

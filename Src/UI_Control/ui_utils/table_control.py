@@ -1,14 +1,14 @@
 from PyQt5.QtWidgets import QTableWidgetItem, QTableWidget
 from PyQt5.QtCore import Qt
 import numpy as np
-from skeleton.detect_skeleton import PoseEstimater
+from skeleton.datasets import halpe26_keypoint_info
 
 
 class KeypointTable:
-    def __init__(self, table_widget: QTableWidget, pose_estimater:PoseEstimater):
+    def __init__(self, table_widget: QTableWidget, pose_estimater):
         self.kpt_table = table_widget
         self.pose_estimater = pose_estimater
-        self.kpt_dict = self.pose_estimater.joints["haple"]["keypoints"]
+        self.kpt_dict = halpe26_keypoint_info["keypoints"]
         self.correct_kpt_idx = None
         self.label_kpt = False
         self.clearTableView()
@@ -22,7 +22,7 @@ class KeypointTable:
         if person_data.empty:
             self.clearTableView()
             return
-        kpt_dict = self.pose_estimater.joints["haple"]["keypoints"]
+        kpt_dict = halpe26_keypoint_info["keypoints"]
         num_keypoints = len(kpt_dict)
         if self.kpt_table.rowCount() < num_keypoints:
             self.kpt_table.setRowCount(num_keypoints)

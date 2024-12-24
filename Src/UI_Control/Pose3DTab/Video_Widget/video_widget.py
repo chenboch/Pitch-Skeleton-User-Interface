@@ -5,25 +5,20 @@ import numpy as np
 import sys
 import cv2
 import os
-from Pose3DTab.Video_Widget.UI_ui import Ui_Video_Widget
-import matplotlib.pyplot as plt
-import pandas as pd
-from utils.vis_image import ImageDrawer
-from utils.selector import PersonSelector, KptSelector
-from cv_utils.cv_control import VideoLoader, JsonLoader
-from skeleton.detect_skeleton import PoseEstimater
-from ui_utils.table_control import KeypointTable
-from utils.vis_graph import GraphPlotter
-from utils.analyze import PoseAnalyzer
-from utils.model import Model
+from .video_ui import Ui_Video_Widget
+from ...utils import *
+from ...cv_utils import *
+from skeleton import (VidePose3DEstimater, Wrapper)
+from ...vis_utils import *
+from ...ui_utils import *
 import pyqtgraph as pg
 
 class PoseVideoTabControl(QWidget):
-    def __init__(self, model:Model, parent = None):
+    def __init__(self, wrapper:Wrapper, parent = None):
         super(PoseVideoTabControl, self).__init__(parent)
         self.ui = Ui_Video_Widget()
         self.ui.setupUi(self)
-        self.model = model
+        self.wrapper = wrapper
         self.setupComponents()
         self.initVar()
         self.bindUI()
@@ -138,8 +133,7 @@ class PoseVideoTabControl(QWidget):
     def setupComponents(self): 
         self.person_selector = PersonSelector()
         self.kpt_selector = KptSelector()
-        self.pose_estimater = PoseEstimater(self.model)
-        
+        self.pose_estimater = VidePose3DEstimater(self.wrapper)
         self.pose_analyzer = PoseAnalyzer(self.pose_estimater)
         self.graph_plotter = GraphPlotter(self.pose_analyzer)
         self.image_drawer = ImageDrawer(self.pose_estimater, self.pose_analyzer)
@@ -187,7 +181,6 @@ class PoseVideoTabControl(QWidget):
         self.initFrameSlider()
         # self.initGraph()
         self.updateFrame(0)
-        self.model.setImageSize(self.video_loader.video_size)
         self.ui.videoNameLabel.setText(self.video_loader.video_name)
         video_size = self.video_loader.video_size
         self.ui.ResolutionLabel.setText(f"(0,0) - {video_size[0]} x {video_size[1]}")
@@ -229,7 +222,7 @@ class PoseVideoTabControl(QWidget):
         frame_num = self.ui.frameSlider.value()
         self.ui.frameNumLabel.setText(f'{frame_num}/{len(self.video_loader.video_frames) - 1}')
         frame = self.video_loader.getVideoImage(frame_num)
-        fps= self.pose_estimater.detectKpt(frame, frame_num, is_video=True, is_3d= True)
+        fps= self.pose_estimater.detectKpt(frame, frame_num, is_3d= True)
         self.ui.FPSInfoLabel.setText(f"{fps:02d}")
 
         if self.pose_estimater.person_id is not None:
@@ -249,7 +242,7 @@ class PoseVideoTabControl(QWidget):
     def toggleDetect(self):
         self.ui.showSkeletonCheckBox.setChecked(True)
         frame = self.video_loader.getVideoImage(0)
-        fps = self.pose_estimater.detectKpt(frame, 0, is_video=True, is_3d= True)
+        fps = self.pose_estimater.detectKpt(frame, 0, is_3d= True)
         self.ui.playBtn.click()
 
     def toggleSelect(self, state:int):
