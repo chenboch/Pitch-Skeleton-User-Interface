@@ -22,7 +22,7 @@ class Pose3DEstimator(object):
         parser.add_argument(
             '--disable-rebase-keypoint',
             action='store_true',
-            default=False,
+            default=True,
             help='Whether to disable rebasing the predicted 3D pose so its '
             'lowest keypoint has a height of 0 (landing on the ground). Rebase '
             'is useful for visualization when the model do not predict the '
@@ -30,7 +30,7 @@ class Pose3DEstimator(object):
         parser.add_argument(
             '--disable-norm-pose-2d',
             action='store_true',
-            default=False,
+            default=True,
             help='Whether to scale the bbox (along with the 2D pose) to the '
             'average bbox scale of the dataset, and move the bbox (along with the '
             '2D pose) to the average bbox center of the dataset. This is useful '

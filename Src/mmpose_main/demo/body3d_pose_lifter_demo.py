@@ -60,7 +60,7 @@ def parse_args():
     parser.add_argument(
         '--disable-rebase-keypoint',
         action='store_true',
-        default=False,
+        default=True,
         help='Whether to disable rebasing the predicted 3D pose so its '
         'lowest keypoint has a height of 0 (landing on the ground). Rebase '
         'is useful for visualization when the model do not predict the '
@@ -316,8 +316,7 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
         keypoint_scores = pred_instances.keypoint_scores
         if keypoint_scores.ndim == 3:
             keypoint_scores = np.squeeze(keypoint_scores, axis=1)
-            pose_lift_results[
-                idx].pred_instances.keypoint_scores = keypoint_scores
+            pose_lift_results[idx].pred_instances.keypoint_scores = keypoint_scores
         if keypoints.ndim == 4:
             keypoints = np.squeeze(keypoints, axis=1)
 

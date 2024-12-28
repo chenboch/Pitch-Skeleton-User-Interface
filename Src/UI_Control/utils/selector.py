@@ -6,14 +6,14 @@ class PersonSelector:
         self.selected_id = None
 
     def select(self, x: float = 0.0, y: float = 0.0, search_person_df: pd.DataFrame = pd.DataFrame()):
-        """選擇最大 bbox 或指定座標範圍內的 bbox，並記錄選擇的 person_id."""
+        """選擇最大 bbox 或指定座標範圍內的 bbox，並記錄選擇的 track_id."""
         if search_person_df.empty:
             return
 
         max_area = -1
 
         for _, row in search_person_df.iterrows():
-            person_id = row['person_id']
+            track_id = row['track_id']
             x1, y1, x2, y2 = map(int, row['bbox'])
             
             # 如果 x 和 y 都為 0，無需座標篩選，直接找最大 bbox
@@ -26,7 +26,7 @@ class PersonSelector:
             # 更新最大面積的 bbox
             if area > max_area:
                 max_area = area
-                self.selected_id = person_id
+                self.selected_id = track_id
     
     def reset(self):
         self.selected_id = None

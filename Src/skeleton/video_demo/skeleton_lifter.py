@@ -1,22 +1,15 @@
 import numpy as np
 import pandas as pd
-import os
-import sys
 from ..model.wrapper import Wrapper
 
-from mmpose.apis import inference_topdown
 from mmpose.evaluation.functional import nms
 from mmpose.structures import (PoseDataSample, merge_data_samples,
                                split_instances)
 from mmpose.apis import (convert_keypoint_definition, extract_pose_sequence,
-                         inference_pose_lifter_model, inference_topdown,
-                         init_model)
+                         inference_pose_lifter_model, inference_topdown)
 from .skeleton_processor import *
 from ..lib import (FPSTimer, OneEuroFilter)
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(current_dir, "..", "tracker"))
-
+import logging
 try:
     from mmdet.apis import inference_detector
     has_mmdet = True
@@ -25,40 +18,48 @@ except (ImportError, ModuleNotFoundError):
 
 class PoseLifter(object):
     def __init__(self, wrapper: Wrapper =None):
+        self.logger = logging.getLogger(self.__class__.__name__)  # 獲取當前類的日誌對象
+        self.logger.info("PoseLifter initialized with wrapper.")
         self.detector = wrapper.detector
         self.tracker = wrapper.tracker
         self.pose2d_estimator = wrapper.pose2d_estimator
+        self.pose3d_estimator = wrapper.pose3d_estimator
         self.person_df = pd.DataFrame()
-        self.person_id = None
-        self.kpt_id = None
-        self.pitch_hand_id = 10
+        self._track_id = None
+        self._joint_id = None
+        self._is_detect = False
+        self._pitch_hand_id = 10
         self.fps = None
         self.processed_frames = set()
         self.fps_timer = FPSTimer()
-        self.is_detect = False
+       
         self.kpt_buffer = []
   
-    def detectKpt(self, image:np.ndarray, frame_num:int = None, is_3d:bool=False):
-        if not self.is_detect:
+    def detect_keypoints(self, image:np.ndarray, frame_num:int = None):
+        if not self._is_detect:
             return 0
         fps = 0
         self.fps_timer.tic()
         if frame_num not in self.processed_frames:
-            pred_instances, person_ids = self.processImage(image, is_3d, select_id=self.person_id)
-            new_person_df = mergePersonData(pred_instances, person_ids, frame_num)
+            pose_results, pred_instances, track_ids = self.process_image(image)
+            new_person_df = merge_person_data(pred_instances, track_ids, frame_num)
+            new_person_df = smooth_keypoints(self.person_df, new_person_df, track_ids)
+            pose_results = update_pose_results(new_person_df, pose_results, track_ids)
+            pred_3d_pred_instances = self.process_pose3d(pose_results, track_ids, image.shape)
+            new_person_df = merge_3d_data(new_person_df, pred_3d_pred_instances, track_ids)
+            print(new_person_df)
             self.person_df = pd.concat([self.person_df, new_person_df], ignore_index=True)
-            self.person_df = smoothKpt(self.person_df, person_ids, frame_num)
+            
             self.processed_frames.add(frame_num)
-
-        if self.kpt_id is not None:
-            self.kpt_buffer = updateKptBuffer(self.person_df, self.person_id, self.kpt_id, frame_num)
+        if self._joint_id is not None:
+            self.kpt_buffer = updateKptBuffer(self.person_df, self._track_id, self._joint_id, frame_num)
 
         average_time = self.fps_timer.toc()
         fps = int(1/max(average_time, 0.00001))
         fps = fps if fps < 100 else 0
         return fps
            
-    def processImage(self, img, is_3d, select_id=None):
+    def process_image(self, img):
         """
         處理單張圖像，進行物件偵測、跟蹤和姿態估計。
 
@@ -72,12 +73,9 @@ class PoseLifter(object):
         """
        
         # 進行物件偵測
-        
         result = inference_detector(self.detector.detector, img, test_pipeline= self.detector.detector_test_pipeline)
-        
         pred_instances = result.pred_instances
         det_result = pred_instances[pred_instances.scores >self.detector.detect_args.score_thr].cpu().numpy()
-        
         # 篩選指定類別的邊界框
         bboxes = det_result.bboxes[det_result.labels == self.detector.detect_args.det_cat_id]
         scores = det_result.scores[det_result.labels == self.detector.detect_args.det_cat_id]
@@ -86,67 +84,85 @@ class PoseLifter(object):
         online_targets = self.tracker.tracker.update(
             np.hstack((bboxes, np.full((bboxes.shape[0], 2), [0.9, 0]))), img.copy()
         )
-    
         # 過濾出有效的邊界框和追蹤ID
-        online_bbox, online_ids = filterValidTargets(online_targets, select_id)
+        online_bbox, online_ids = filterValidTargets(online_targets, self._track_id)
         # 姿態估計
-        # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
         pose_results = inference_topdown(self.pose2d_estimator.pose2d_estimator, img, np.array(online_bbox))
-        # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
         data_samples = merge_data_samples(pose_results)
-        # if select_id and is_3d:
-            
-        #     self.process_pose3d(img, data_samples, model)
-
     
-        return data_samples.get('pred_instances', None), online_ids
+        return pose_results, data_samples.get('pred_instances', None), online_ids
 
-    def process_pose3d(self, img, data_sample, model):
+    def process_pose3d(self ,pose_results, track_ids, img_shape):
+        """
+        將 2D 骨架關鍵點轉換為 3D 骨架關鍵點。
+
+        Args:
+            img_shape: 輸入影像尺寸。
+            data_sample: 包含關鍵點的 2D 數據樣本。
+
+        Returns:
+            pred_3d_data_samples: 3D 預測骨架數據樣本。
+        """
+        # 提取數據集名稱
+        pose_det_dataset_name = self.pose2d_estimator.pose2d_estimator.dataset_meta['dataset_name']
+        pose_lift_dataset_name = self.pose3d_estimator.pose3d_estimator.dataset_meta['dataset_name']
+        pose_lift_dataset = self.pose3d_estimator.pose3d_estimator.cfg.test_dataloader.dataset
+
+        # 初始化 2D 骨架轉換的結果容器
         pose_est_results_list = []
-        pose_det_dataset_name = model.pose2d_estimator.dataset_meta['dataset_name']
-        pose_lift_dataset_name = model.pose3d_estimator.dataset_meta['dataset_name']
-        pose_lift_dataset = model.pose3d_estimator.cfg.test_dataloader.dataset
         pose_est_results_converted = []
-        pred_instances = data_sample.pred_instances.cpu().numpy()
-        keypoints = pred_instances.keypoints
-    
-            # convert keypoints for pose-lifting
-        pose_est_result_converted = PoseDataSample()
-        pose_est_result_converted.set_field(
-            pred_instances.clone(), 'pred_instances')
-        pose_est_result_converted.set_field(
-            data_sample.gt_instances.clone(), 'gt_instances')
-        keypoints = convert_keypoint_definition(keypoints,
-                                                pose_det_dataset_name,
-                                                pose_lift_dataset_name)
-        pose_est_result_converted.pred_instances.set_field(keypoints, 'keypoints')
-        pose_est_result_converted.set_field(self.person_id,'track_id')
-        pose_est_results_converted.append(pose_est_result_converted)
-        pose_est_results_list.append(pose_est_results_converted.copy())
-        pose_seq_2d = extract_pose_sequence(
-            pose_est_results_list,
-            frame_idx=0,
-            causal=pose_lift_dataset.get('causal', False),
-            seq_len=pose_lift_dataset.get('seq_len', 1),
-            step=pose_lift_dataset.get('seq_step', 1))
 
-        # conduct 2D-to-3D pose lifting
-        norm_pose_2d = not model.pose3d_args.disable_norm_pose_2d
-        pose_lift_results = inference_pose_lifter_model(
-            model.pose3d_estimator,
+        for i, data_sample in enumerate(pose_results):
+            pred_instances = data_sample.pred_instances.cpu().numpy()
+            keypoints = pred_instances.keypoints
+            pose_results[i].set_field(track_ids[i], 'track_id')
+            # 步驟 1: 轉換關鍵點格式
+            pose_est_result_converted = convert_keypoints(
+                pose_results[i], keypoints, pose_det_dataset_name, pose_lift_dataset_name
+            )
+            pose_est_results_converted.append([pose_est_result_converted])
+        pose_est_results_list.append(pose_est_results_converted)
+
+        # 步驟 2: 提取 2D 骨架序列
+        pose_seq_2d = extract_pose_sequence(
+                            pose_est_results_converted,
+                            frame_idx=0,
+                            causal=pose_lift_dataset.get('causal', False),
+                            seq_len=pose_lift_dataset.get('seq_len', 1),
+                            step=pose_lift_dataset.get('seq_step', 1)
+                        )
+
+        # 步驟 3: 進行 2D-to-3D 提升
+
+        pose_lift_results = self._lift_to_3d(pose_seq_2d, img_shape[:2])
+
+        # 步驟 4: 後處理 3D 骨架數據
+        pose_lift_results = self._postprocess_pose_lift(pose_lift_results, pose_results)
+        # 合併樣本並返回結果
+        pred_3d_data_samples = merge_data_samples(pose_lift_results)
+        return pred_3d_data_samples.get('pred_instances', None)
+
+    def _lift_to_3d(self, pose_seq_2d, image_size):
+        """使用模型進行 2D-to-3D 提升。"""
+        norm_pose_2d = not self.pose3d_estimator.pose3d_args.disable_norm_pose_2d
+        return inference_pose_lifter_model(
+            self.pose3d_estimator.pose3d_estimator,
             pose_seq_2d,
-            image_size=img.shape[:2],
-            norm_pose_2d=norm_pose_2d)
+            image_size=image_size,
+            norm_pose_2d=norm_pose_2d
+        )
+
+    def _postprocess_pose_lift(self, pose_lift_results, pose_results):
+        """後處理提升的 3D 骨架數據。"""
         for idx, pose_lift_result in enumerate(pose_lift_results):
-            pose_lift_result.track_id = self.person_id
+            pose_lift_result.track_id = pose_results[idx].get('track_id', 1e4)
 
             pred_instances = pose_lift_result.pred_instances
             keypoints = pred_instances.keypoints
             keypoint_scores = pred_instances.keypoint_scores
             if keypoint_scores.ndim == 3:
                 keypoint_scores = np.squeeze(keypoint_scores, axis=1)
-                pose_lift_results[
-                    idx].pred_instances.keypoint_scores = keypoint_scores
+                pose_lift_results[idx].pred_instances.keypoint_scores = keypoint_scores
             if keypoints.ndim == 4:
                 keypoints = np.squeeze(keypoints, axis=1)
 
@@ -155,41 +171,73 @@ class PoseLifter(object):
             keypoints[..., 2] = -keypoints[..., 2]
 
             # rebase height (z-axis)
-            if not model.pose3d_args.disable_rebase_keypoint:
-                keypoints[..., 2] -= np.min(
-                    keypoints[..., 2], axis=-1, keepdims=True)
+            # if not args.disable_rebase_keypoint:
+            keypoints[..., 2] -= np.min(
+                keypoints[..., 2], axis=-1, keepdims=True)
 
             pose_lift_results[idx].pred_instances.keypoints = keypoints
-
         pose_lift_results = sorted(
-            pose_lift_results, key=lambda x: x.get('track_id', 1e4))
-
-        pred_3d_data_samples = merge_data_samples(pose_lift_results)
-        pred_3d_instances = pred_3d_data_samples.get('pred_instances', None)
-
-    def setPersonId(self, person_id):
-        self.person_id = person_id
-        print(f'person id: {self.person_id}')
-
-    def setKptId(self, kpt_id):
-        self.kpt_id = kpt_id
-        print(f'person id: {self.kpt_id}')
+                pose_lift_results, key=lambda x: x.get('track_id', 1e4))
+        
+        return pose_lift_results
     
-    def setPitchHandId(self,kpt_id):
-        self.pitch_hand_id = kpt_id
+    @property
+    def track_id(self):
+        """獲取當前追蹤的 track_id。"""
+        return self._track_id
 
-    def setDetect(self, status:bool):
-        self.is_detect = status
+    @track_id.setter
+    def track_id(self, value):
+        """設置追蹤的 track_id，同時打印日誌。"""
+        if value != self._track_id:
+            self._track_id = value
+            self.logger.info(f"Person ID set to: {self._track_id}")
+
+    @property
+    def joint_id(self):
+        """獲取當前追蹤的 joint_id。"""
+        return self._joint_id
+
+    @joint_id.setter
+    def joint_id(self, value):
+        """設置追蹤的joint_id，同時打印日誌。"""
+        if value != self._joint_id:
+            self._joint_id = value
+            self.logger.info(f"當前關節點: {self._joint_id}")
+    
+    @property
+    def pitch_hand_id(self):
+        """獲取當前追蹤的 joint_id。"""
+        return self._pitch_hand_id
+
+    @pitch_hand_id.setter
+    def pitch_hand_id(self, value):
+        """設置追蹤的joint_id，同時打印日誌。"""
+        if value != self._pitch_hand_id:
+            self._pitch_hand_id = value
+            self.logger.info(f"當前投手關節點: {self._pitch_hand_id}")
+
+    @property
+    def is_detect(self):
+        """獲取當前偵測的狀態。"""
+        return self._is_detect
+
+    @is_detect.setter
+    def is_detect(self, status:bool):
+        """設置當前偵測的狀態，同時打印日誌。"""
+        if status != self._is_detect:
+            self._is_detect = status
+            self.logger.info(f"當前偵測的狀態: {self._is_detect}")
    
-    def getPersonDf(self, frame_num=None, is_select=False, is_kpt=False):
+    def get_person_df(self, frame_num=None, is_select=False, is_kpt=False):
         if self.person_df.empty:
             return pd.DataFrame()
         condition = pd.Series([True] * len(self.person_df))  # 初始條件設為全為 True
         if frame_num is not None:
             condition &= (self.person_df['frame_number'] == frame_num)
         
-        if is_select and self.person_id is not None:
-            condition &= (self.person_df['person_id'] == self.person_id)
+        if is_select and self._track_id is not None:
+            condition &= (self.person_df['track_id'] == self._track_id)
  
         data = self.person_df.loc[condition].copy()
         
@@ -198,10 +246,9 @@ class PoseLifter(object):
         
         if is_kpt:
             data = data['keypoints'].iloc[0]
-
         return data
     
-    def setProcessedData(self, person_df:pd.DataFrame):
+    def set_processed_data(self, person_df:pd.DataFrame):
         if person_df.empty:
             return
         self.person_df = person_df
@@ -209,18 +256,18 @@ class PoseLifter(object):
 
     def update_person_df(self, x:float, y:float,frame_num:int, correct_kpt_idx:int):
         self.person_df.loc[(self.person_df['frame_number'] == frame_num) &
-                            (self.person_df['person_id'] == self.person_id), 'keypoints'].iloc[0][correct_kpt_idx] = [x, y, 0.9, 1]
+                            (self.person_df['track_id'] == self._track_id), 'keypoints'].iloc[0][correct_kpt_idx] = [x, y, 0.9, 1]
 
-    def clearKptBuffer(self):
+    def clear_keypoint_buffer(self):
         self.kpt_buffer = []
 
     def reset(self):
         self.person_df = pd.DataFrame()
-        self.person_id = None
-        self.kpt_id = None
+        self._track_id = None
+        self._joint_id = None
         self.fps = None
         self.processed_frames = set()
         self.fps_timer = FPSTimer()
         self.smooth_filter = OneEuroFilter()
-        self.is_detect = False
+        self._is_detect = False
         self.kpt_buffer = []

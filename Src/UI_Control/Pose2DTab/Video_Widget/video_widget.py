@@ -13,24 +13,24 @@ class PoseVideoTabControl(BasePoseVideoTab):
     
     def bindUI(self):
         self.ui.loadOriginalVideoBtn.clicked.connect(
-            lambda: self.loadVideo(is_processed=False))
+            lambda: self.load_video(is_processed=False))
         self.ui.loadProcessedVideoBtn.clicked.connect(
-            lambda: self.loadVideo(is_processed=True))
+            lambda: self.load_video(is_processed=True))
         
-        self.ui.playBtn.clicked.connect(self.playBtnClicked)
+        self.ui.playBtn.clicked.connect(self.play_btn_clicked)
         self.ui.backKeyBtn.clicked.connect(
             lambda: self.ui.frameSlider.setValue(self.ui.frameSlider.value() - 1)
         )
         self.ui.forwardKeyBtn.clicked.connect(
             lambda: self.ui.frameSlider.setValue(self.ui.frameSlider.value() + 1)
         )
-        self.ui.frameSlider.valueChanged.connect(self.analyzeFrame)
+        self.ui.frameSlider.valueChanged.connect(self.analyze_frame)
         self.kpt_table = KeypointTable(self.ui.KptTable,self.pose_estimater)
         self.ui.KptTable.cellActivated.connect(self.kpt_table.onCellClicked)
-        self.ui.FrameView.mousePressEvent = self.mousePressEvent
+        self.ui.FrameView.mouse_press_event = self.mouse_press_event
         self.ui.IdCorrectBtn.clicked.connect(self.correctId)
-        self.ui.startCodeBtn.clicked.connect(self.toggleDetect)
-        self.ui.selectCheckBox.stateChanged.connect(self.toggleSelect)
+        self.ui.startCodeBtn.clicked.connect(self.toggle_detect)
+        self.ui.selectCheckBox.stateChanged.connect(self.toggle_select)
         self.ui.showSkeletonCheckBox.stateChanged.connect(self.toggleShowSkeleton)
         self.ui.selectKptCheckBox.stateChanged.connect(self.toggleKptSelect)
         self.ui.showBboxCheckBox.stateChanged.connect(self.toggleShowBbox)

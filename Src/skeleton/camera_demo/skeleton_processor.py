@@ -7,7 +7,7 @@ import torch
 from scipy.signal import savgol_filter
 
         
-def mergePersonData(pred_instances, person_ids: list, frame_num: int = None):
+def merge_person_data(pred_instances, person_ids: list, frame_num: int = None):
     """
     Efficiently merge person data into a DataFrame.
     """
@@ -35,7 +35,7 @@ def mergePersonData(pred_instances, person_ids: list, frame_num: int = None):
     return pd.DataFrame(data)
 
 
-def smoothKpt(self, person_ids: list, frame_num=None):
+def smooth_keypoints(self, person_ids: list, frame_num=None):
 
     self.pre_person_df = self.person_df.copy()
 

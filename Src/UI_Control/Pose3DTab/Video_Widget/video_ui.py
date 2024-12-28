@@ -11,7 +11,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
-class Ui_Video_Widget(object):
+class Ui_Video_UI(object):
     def setupUi(self, Video_Widget):
         Video_Widget.setObjectName("Video_Widget")
         Video_Widget.resize(1200, 800)

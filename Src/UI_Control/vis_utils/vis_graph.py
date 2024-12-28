@@ -49,6 +49,8 @@ class GraphPlotter():
         except TypeError:
             # print(f"角度數據格式錯誤: {angle_value}")
             return
+        except IndexError:
+            return
         self.graph.setTitle(f'{title}')
         # Plot angle data for all frames
         kpt_times, kpt_angles = self.pose_analyzer.get_frame_angle_data(angle_name=self.angle_name)

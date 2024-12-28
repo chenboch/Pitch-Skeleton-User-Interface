@@ -47,7 +47,7 @@ class ImageDrawer():
         if img is None:
             return
         image = img.copy()
-        curr_person_df = self.pose_estimater.getPersonDf(frame_num = frame_num, is_select=True)
+        curr_person_df = self.pose_estimater.get_person_df(frame_num = frame_num, is_select=True)
         if curr_person_df is None:
             return image
         
@@ -64,7 +64,7 @@ class ImageDrawer():
             image = self.drawBbox(image, curr_person_df)
         
         if self.show_skeleton:
-            image = self.drawPointsandSkeleton(image, curr_person_df, halpe26_keypoint_info['skeleton_links'], 
+            image = self.draw_points_and_skeleton(image, curr_person_df, halpe26_keypoint_info['skeleton_links'], 
                                                 points_palette_samples=10)
         
         if self.show_traj:
@@ -105,9 +105,9 @@ class ImageDrawer():
     def drawBbox(self, image:np.ndarray, person_df:pd.DataFrame):
         if person_df.empty:
             return image
-        person_ids = person_df['person_id']
+        track_ids = person_df['track_id']
         person_bbox = person_df['bbox']
-        for id, bbox in zip(person_ids, person_bbox):
+        for id, bbox in zip(track_ids, person_bbox):
             x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
             color = tuple(colors[id % len(colors)])
             color = (0,255,0)
@@ -169,7 +169,7 @@ class ImageDrawer():
         return img
 
 
-    def drawPoints(self, image, points, person_idx, color_palette='gist_rainbow', palette_samples=10, confidence_threshold=0.3):
+    def drawPoints(self, image, points, track_idx, color_palette='gist_rainbow', palette_samples=10, confidence_threshold=0.3):
         """
         Draws `points` on `image`.
 
@@ -204,7 +204,7 @@ class ImageDrawer():
         
             unlabel = False if pt[0] != 0 and pt[1] != 0 else True
             if pt[2] > confidence_threshold and not unlabel:
-                image = cv2.circle(image, (int(pt[1]), int(pt[0])), circle_size, tuple(colors[person_idx % len(colors)]), -1)
+                image = cv2.circle(image, (int(pt[1]), int(pt[0])), circle_size, tuple(colors[track_idx % len(colors)]), -1)
 
         return image
 
@@ -262,7 +262,7 @@ class ImageDrawer():
                 )
         return image
 
-    def drawPointsandSkeleton(self, image, person_df, skeleton, points_color_palette='gist_rainbow', points_palette_samples=10,
+    def draw_points_and_skeleton(self, image, person_df, skeleton, points_color_palette='gist_rainbow', points_palette_samples=10,
                                 skeleton_color_palette='Set2', skeleton_palette_samples='jet', confidence_threshold=0.3):
         """
         Draws `points` and `skeleton` on `image`.
@@ -296,17 +296,17 @@ class ImageDrawer():
             return image
         if person_df.empty:
             return image
-        person_data = self.DftoPoints(person_df)
-        for person_id, points in person_data.items(): 
-            image = self.drawSkeleton(image, points, skeleton,person_index=person_id)
-            image = self.drawPoints(image, points,person_idx=person_id)
+        person_data = self.df_to_points(person_df)
+        for track_id, points in person_data.items(): 
+            image = self.drawSkeleton(image, points, skeleton,person_index=track_id)
+            image = self.drawPoints(image, points,track_idx=track_id)
         return image
 
-    def DftoPoints(self, person_df):
+    def df_to_points(self, person_df):
         person_data = {}
-        person_ids = person_df['person_id']
+        track_ids = person_df['track_id']
         person_kpts = person_df['keypoints']
-        for id, kpts in zip(person_ids, person_kpts):
+        for id, kpts in zip(track_ids, person_kpts):
             person_data[id] = np.array(self.swapValues(kpts))
         return person_data
 
@@ -337,7 +337,7 @@ class ImageDrawer():
         self.show_countdown = status
         
     def setAngleInfoPos(self):
-        person_df = self.pose_estimater.getPersonDf(is_select=True)
+        person_df = self.pose_estimater.get_person_df(is_select=True)
         if person_df is None:
             return
         self.angle_info_pos = person_df.iloc[0]['keypoints'][19]

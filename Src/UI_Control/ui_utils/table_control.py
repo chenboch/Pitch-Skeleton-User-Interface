@@ -15,10 +15,10 @@ class KeypointTable:
 
     def importDataToTable(self, frame_num:int):
         self.clearTableView()
-        person_id = self.pose_estimater.person_id
+        person_id = self.pose_estimater.track_id
         if person_id is None:
             return
-        person_data = self.pose_estimater.getPersonDf(frame_num=frame_num, is_select=True)
+        person_data = self.pose_estimater.get_person_df(frame_num=frame_num, is_select=True)
         if person_data.empty:
             self.clearTableView()
             return

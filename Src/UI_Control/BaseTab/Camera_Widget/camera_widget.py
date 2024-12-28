@@ -18,15 +18,15 @@ class PoseCameraTabControl(QWidget):
         self.ui = Ui_Camera_UI()
         self.ui.setupUi(self)
         self.model = model
-        self.initVar()
+        self.init_var()
         self.init_pose_estimater()
         self.bindUI()
 
-    def initVar(self):
+    def init_var(self):
         """Initialize variables and timer."""
         self.camera = Camera()
         self.timer = QTimer()
-        self.timer.timeout.connect(self.analyzeFrame)
+        self.timer.timeout.connect(self.analyze_frame)
         self.camera_scene = QGraphicsScene()
 
     def init_pose_estimater(self):
@@ -40,7 +40,7 @@ class PoseCameraTabControl(QWidget):
         """Bind UI elements to their corresponding functions."""
         self.ui.cameraCheckBox.stateChanged.connect(self.toggleCamera)
         self.ui.recordCheckBox.stateChanged.connect(self.toggleRecord)
-        self.ui.selectCheckBox.stateChanged.connect(self.toggleSelect)
+        self.ui.selectCheckBox.stateChanged.connect(self.toggle_select)
         self.ui.showSkeletonCheckBox.stateChanged.connect(self.toggleShowSkeleton)
         self.ui.selectKptCheckBox.stateChanged.connect(self.toggleKptSelect)
         self.ui.showBboxCheckBox.stateChanged.connect(self.toggleShowBbox)
@@ -75,7 +75,7 @@ class PoseCameraTabControl(QWidget):
         self.ui.showSkeletonCheckBox.setChecked(False)
         self.camera.startRecording(video_filename)
 
-    def toggleSelect(self, state:int):
+    def toggle_select(self, state:int):
         """Select a person based on checkbox state."""
         if not self.ui.showSkeletonCheckBox.isChecked():
             self.ui.selectCheckBox.setCheckState(0)
@@ -95,7 +95,7 @@ class PoseCameraTabControl(QWidget):
             return
         is_checked = state == 2
         self.pose_estimater.setKptId(10 if is_checked else None)
-        self.pose_estimater.clearKptBuffer()
+        self.pose_estimater.clear_keypoint_buffer()
         self.image_drawer.setShowTraj(is_checked)
 
     def toggleShowSkeleton(self, state:int):
@@ -117,20 +117,20 @@ class PoseCameraTabControl(QWidget):
         """Change the camera based on input value."""
         self.camera.setCameraId(self.ui.CameraIdInput.value())
 
-    def analyzeFrame(self):
+    def analyze_frame(self):
         """Analyze and process each frame from the camera."""
         if not self.camera.frame_buffer.empty():
             frame = self.camera.frame_buffer.get().copy()
-            fps = self.pose_estimater.detectKpt(frame, is_video=False)
+            fps = self.pose_estimater.detect_keypoints(frame, is_video=False)
             self.ui.FPSInfoLabel.setText(f"{fps:02d}")
             self.update_frame(frame)
 
     def update_frame(self, frame: np.ndarray):
         """Update the displayed frame with additional analysis."""
         drawed_img = self.image_drawer.drawInfo(img = frame, kpt_buffer = self.pose_estimater.kpt_buffer)
-        self.showImage(drawed_img, self.camera_scene, self.ui.FrameView)
+        self.show_image(drawed_img, self.camera_scene, self.ui.FrameView)
 
-    def showImage(self, image: np.ndarray, scene: QGraphicsScene, GraphicsView: QGraphicsView):
+    def show_image(self, image: np.ndarray, scene: QGraphicsScene, GraphicsView: QGraphicsView):
         """Display an image in the QGraphicsView."""
         scene.clear()
         h, w = image.shape[:2]
@@ -141,7 +141,7 @@ class PoseCameraTabControl(QWidget):
         GraphicsView.setAlignment(Qt.AlignLeft)
         GraphicsView.fitInView(scene.sceneRect(), Qt.KeepAspectRatio)
 
-    def mousePressEvent(self, event):
+    def mouse_press_event(self, event):
         """Handle mouse events for person and keypoint selection."""
         if not self.ui.FrameView.rect().contains(event.pos()):
             return

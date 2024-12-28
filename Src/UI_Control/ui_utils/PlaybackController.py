@@ -14,12 +14,12 @@ class PlaybackController:
 
     def setup_connections(self):
         """Set up the connections for playback controls."""
-        self.ui.playBtn.clicked.connect(self.playBtnClicked)
+        self.ui.playBtn.clicked.connect(self.play_btn_clicked)
         self.ui.backKeyBtn.clicked.connect(self.backKeyPressed)
         self.ui.forwardKeyBtn.clicked.connect(self.forwardKeyPressed)
         self.ui.frameSlider.valueChanged.connect(self.analyze_frame_callback)
 
-    def playBtnClicked(self):
+    def play_btn_clicked(self):
         """Handle play button click."""
         if self.video_loader.video_name == "":
             QMessageBox.warning(self.ui, "無法播放影片", "請讀取影片!")
@@ -31,9 +31,9 @@ class PlaybackController:
         self.is_play = not self.is_play
         self.ui.playBtn.setText("||" if self.is_play else "▶︎")
         if self.is_play:
-            self.playFrame(self.ui.frameSlider.value())
+            self.play_frame(self.ui.frameSlider.value())
 
-    def playFrame(self, start_num: int = 0):
+    def play_frame(self, start_num: int = 0):
         """Play frames starting from the given frame number."""
         for i in range(start_num, self.video_loader.total_frames):
             if not self.is_play:
