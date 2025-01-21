@@ -1,5 +1,5 @@
 import torch
-import pandas as pd
+import polars as pl
 import numpy as np
 from ..lib import OneEuroFilterTorch
 from ..datasets import *
@@ -10,7 +10,7 @@ from mmpose.structures import (PoseDataSample, merge_data_samples,
 from mmpose.apis import (convert_keypoint_definition, extract_pose_sequence,
                          inference_pose_lifter_model, inference_topdown)
 
-def filterValidTargets(online_targets, select_id: int = None):
+def filter_valid_targets(online_targets, select_id: int = None):
     """
     過濾出有效的追蹤目標。
 
@@ -19,48 +19,37 @@ def filterValidTargets(online_targets, select_id: int = None):
         select_id (int, optional): 選擇指定的追蹤ID。
 
     Returns:
-        Tuple: 有效的邊界框和追蹤ID。
+        Tuple: 有效的邊界框 (Tensor) 和追蹤ID (Tensor)。
     """
     if not online_targets:
-        return [], []
-
-    # 將所有在線目標的邊界框和ID提取為兩個列表
+        return torch.empty((0, 4), device='cuda'), torch.empty((0,), dtype=torch.int32, device='cuda')
     tlwhs = []
-    track_ids = []
-
     for target in online_targets:
         tlwhs.append(target.tlwh)
-        track_ids.append(target.track_id)
+    # 直接生成張量以減少資料轉換
+    tlwhs = torch.tensor(np.array(tlwhs), device='cuda')  # (n, 4)
+    track_ids = torch.tensor([target.track_id for target in online_targets], dtype=torch.int32, device='cuda')  # (n,)
 
-    # 將列表轉換為 NumPy array
-    tlwhs = np.array(tlwhs)
-    track_ids = np.array(track_ids)
+    # 計算面積 (w * h)
+    areas = tlwhs[:, 2] * tlwhs[:, 3]
 
-    # 將數據轉為張量並放到 GPU 上
-    tlwhs = torch.tensor(tlwhs, device='cuda')  # shape: (n, 4)
-    track_ids = torch.tensor(track_ids, device='cuda')  # shape: (n,)
-
-    # 計算面積 w * h
-    areas = tlwhs[:, 2] * tlwhs[:, 3]  # w * h
-
-    # 過濾面積大於 10 的邊界框
+    # 過濾面積大於 10 的目標
     valid_mask = areas > 10
 
     # 如果指定了 select_id，則進一步過濾
     if select_id is not None:
         valid_mask &= (track_ids == select_id)
 
-    # 過濾有效的邊界框和追蹤ID
+    # 根據過濾條件提取有效的邊界框和追蹤ID
     valid_tlwhs = tlwhs[valid_mask]
     valid_track_ids = track_ids[valid_mask]
 
-    # 將 (x1, y1, w, h) 轉為 (x1, y1, x2, y2)
+    # 將 (x1, y1, w, h) 轉換為 (x1, y1, x2, y2)
     valid_bbox = torch.cat([valid_tlwhs[:, :2], valid_tlwhs[:, :2] + valid_tlwhs[:, 2:4]], dim=1)
 
-    # 返回結果
     return valid_bbox.cpu().tolist(), valid_track_ids.cpu().tolist()
 
-def merge_person_data(pred_instances, track_ids: list, frame_num: int = None) ->pd.DataFrame:
+def merge_person_data(pred_instances, track_ids: list, frame_num: int = None) ->pl.DataFrame:
     person_bboxes = pred_instances['bboxes']
     new_person_data = []  # 用於暫存新的數據
     for person, pid, bbox in zip(pred_instances, track_ids, person_bboxes):
@@ -72,10 +61,12 @@ def merge_person_data(pred_instances, track_ids: list, frame_num: int = None) ->
 
         new_kpts = np.full((len(halpe26_keypoint_info['keypoints']), keypoints_data.shape[1]), 0.9)
         new_kpts[:26] = keypoints_data
-        
+        new_kpts = new_kpts.tolist()
+        bbox = bbox.tolist()
         person_info = {
             'track_id': pid,
             'bbox': bbox,
+            'area': np.round(bbox[2] * bbox[3],2),
             'keypoints': new_kpts
         }
         if frame_num is not None:
@@ -83,49 +74,52 @@ def merge_person_data(pred_instances, track_ids: list, frame_num: int = None) ->
 
         new_person_data.append(person_info)
 
-
     # 將新的數據轉為 DataFrame 並合併到 self.person_df
-    new_person_df = pd.DataFrame(new_person_data)
+    new_person_df = pl.DataFrame(new_person_data)
 
     return new_person_df
 
-def smooth_keypoints(person_df: pd.DataFrame, new_person_df: pd.DataFrame, track_ids: list) -> pd.DataFrame:
+def smooth_keypoints(person_df: pl.DataFrame, new_person_df: pl.DataFrame, track_ids: list) -> pl.DataFrame:
     """
     平滑 2D 關鍵點數據。
     
     Args:
-        person_df (pd.DataFrame): 包含上一幀數據的 DataFrame。
-        new_person_df (pd.DataFrame): 包含當前幀數據的 DataFrame。
+        person_df (pl.DataFrame): 包含上一幀數據的 DataFrame。
+        new_person_df (pl.DataFrame): 包含當前幀數據的 DataFrame。
         track_ids (list): 要處理的 track_id 列表。
     
     Returns:
-        pd.DataFrame: 平滑後的 DataFrame。
+        pl.DataFrame: 平滑後的 DataFrame。
     """
     smooth_filter_dict = {}
 
     # 當前幀無數據時，返回原始 new_person_df
-    if person_df.empty:
+    if person_df.is_empty():
         return new_person_df
+
+    # 獲取上一幀的 frame_number
+    last_frame_number = person_df.select("frame_number").tail(1).item()
 
     for track_id in track_ids:
         # 選擇上一幀和當前幀的數據
-        pre_person_data = person_df.loc[
-            (person_df['frame_number'] == person_df['frame_number'].iloc[-1]) &
+        pre_person_data = person_df.filter(
+            (person_df['frame_number'] == last_frame_number) &
             (person_df['track_id'] == track_id)
-        ]
-        curr_person_data = new_person_df.loc[(new_person_df['track_id'] == track_id)]
+        )
+        curr_person_data = new_person_df.filter(new_person_df['track_id'] == track_id)
 
         # 如果當前幀或前幀沒有該 track_id 的數據，跳過
-        if curr_person_data.empty or pre_person_data.empty:
+        if pre_person_data.is_empty() or curr_person_data.is_empty():
             continue
-        
+
         # 初始化濾波器字典（如果不存在）
         if track_id not in smooth_filter_dict:
-            smooth_filter_dict[track_id] = {joint: OneEuroFilterTorch() for joint in range(len(pre_person_data.iloc[0]['keypoints']))}
+            keypoints_len = len(pre_person_data.select("keypoints").row(0)[0])
+            smooth_filter_dict[track_id] = {joint: OneEuroFilterTorch() for joint in range(keypoints_len)}
 
         # 獲取上一幀和當前幀的關鍵點數據
-        pre_kpts = torch.tensor(pre_person_data.iloc[0]['keypoints'], device='cuda')
-        curr_kpts = torch.tensor(curr_person_data.iloc[0]['keypoints'], device='cuda')
+        pre_kpts = torch.tensor(pre_person_data.select("keypoints").row(0)[0], device='cuda')
+        curr_kpts = torch.tensor(curr_person_data.select("keypoints").row(0)[0], device='cuda')
         smoothed_kpts = []
 
         # 使用濾波器平滑每個關節點
@@ -138,20 +132,28 @@ def smooth_keypoints(person_df: pd.DataFrame, new_person_df: pd.DataFrame, track
                 curr_kptx = smooth_filter_dict[track_id][joint_idx](curr_kptx, pre_kptx)
                 curr_kpty = smooth_filter_dict[track_id][joint_idx](curr_kpty, pre_kpty)
             smoothed_kpts.append([curr_kptx.cpu().item(), curr_kpty.cpu().item(), curr_conf.item(), curr_label.item()])
-        
+
         # 更新當前幀的數據
-        new_person_df.at[curr_person_data.index[0], 'keypoints'] = smoothed_kpts
+        new_person_df = new_person_df.with_columns(
+            pl.when(new_person_df['track_id'] == track_id)
+            .then(pl.Series("keypoints", [smoothed_kpts]))
+            .otherwise(new_person_df["keypoints"])
+            .alias("keypoints")
+        )
 
     return new_person_df
 
-def updateKptBuffer(person_df:pd.DataFrame, track_id:int, kpt_id: int,frame_num:int, window_length=17, polyorder=2)->list:
-    filtered_df = person_df[
+def update_keypoint_buffer(person_df:pl.DataFrame, track_id:int, kpt_id: int,frame_num:int, window_length=5, polyorder=2)->list:
+    
+    filtered_df = person_df.filter(
         (person_df['track_id'] == track_id) & 
         (person_df['frame_number'] < frame_num)
-    ]
-    if filtered_df.empty:
+    ).sort('frame_number')
+
+    if filtered_df.is_empty():
         return None
-    filtered_df = filtered_df.sort_values(by='frame_number')
+    filtered_df = filtered_df.sort("frame_number")
+
     kpt_buffer = []
     for kpts in filtered_df['keypoints']:
         kpt = kpts[kpt_id]
@@ -182,8 +184,8 @@ def updateKptBuffer(person_df:pd.DataFrame, track_id:int, kpt_id: int,frame_num:
 
     return smoothed_points
     
-def correct_track_id(person_df:pd.DataFrame, before_correctId:int, after_correctId:int, max_frame:int)->pd.DataFrame:
-    if person_df.empty:
+def correct_track_id(person_df:pl.DataFrame, before_correctId:int, after_correctId:int, max_frame:int)->pl.DataFrame:
+    if person_df.is_empty():
         return
 
     if (before_correctId not in person_df['track_id'].unique()) or (after_correctId not in person_df['track_id'].unique()):
@@ -191,34 +193,51 @@ def correct_track_id(person_df:pd.DataFrame, before_correctId:int, after_correct
 
     if (before_correctId in person_df['track_id'].unique()) and (after_correctId in person_df['track_id'].unique()):
         for i in range(0, max(max_frame)):
-            condition_1 = (person_df['frame_number'] == i) & (person_df['track_id'] == before_correctId)
-            person_df.loc[condition_1, 'track_id'] = after_correctId
+            # condition_1 = (person_df['frame_number'] == i) & (person_df['track_id'] == before_correctId)
+            person_df = person_df.with_columns(
+                pl.when(
+                    (person_df['frame_number'] == i) & (person_df['track_id'] == before_correctId)
+                )
+                .then(after_correctId)
+                .otherwise(person_df['track_id'])
+                .alias('track_id')
+            )
+
     return person_df
 
 #process 3d joints
-def update_pose_results(new_person_df, pose_results, track_ids):
+
+def update_pose_results(new_person_df: pl.DataFrame, pose_results, track_ids: list):
     """
     將平滑後的關鍵點數據從 new_person_df 更新回 data_samples 的結構。
 
     Args:
-        new_person_df (pd.DataFrame): 包含平滑後關鍵點數據的 DataFrame。
-        data_samples: 原始的姿態數據樣本結構（包含 pred_instances）。
+        new_person_df (pl.DataFrame): 包含平滑後關鍵點數據的 DataFrame。
+        pose_results: 原始的姿態數據樣本結構（包含 pred_instances）。
         track_ids (list): 處理的 track_id 列表。
 
     Returns:
-        data_samples: 更新後的姿態數據樣本結構。
+        pose_results: 更新後的姿態數據樣本結構。
     """
+
     # 遍歷每個 track_id 並更新對應的數據
     for track_id in track_ids:
-        # 從 new_person_df 中提取該 track_id 的平滑數據
-        person_data = new_person_df.loc[new_person_df['track_id'] == track_id]
-        if person_data.empty:
-            continue  # 該 track_id 無數據，跳過
+        # 從 new_person_df 中篩選該 track_id 的平滑數據
+        person_data = new_person_df.filter(pl.col('track_id') == track_id)
+        
+        if person_data.height == 0:  # 如果該 track_id 無數據，跳過
+            continue
+
         # 提取平滑後的關鍵點
-        smoothed_keypoints = np.array(person_data.iloc[0]['keypoints'])[:, :2]
+        # smoothed_keypoints = np.array(person_data.select('keypoints')[0, 0])[:, :2]
+        keypoints_list = person_data.select('keypoints').to_numpy()[0][0] 
+        # smoothed_keypoints = smoothed_keypoints.reshape(-1, 26)
+        smoothed_keypoints = np.array([kp[:2] for kp in keypoints_list]) 
+        # 更新到 pose_results 的 pred_instances 中
         for pred_instance in pose_results[0].pred_instances:
+            # if pred_instance['track_id'] == track_id:  # 確保是正確的 track_id
             pred_instance['keypoints'][0] = smoothed_keypoints
-    
+
     return pose_results
 
 def convert_keypoints(pose_result, keypoints, det_name, lift_name):
@@ -242,18 +261,19 @@ def extract_3d_data(data_3d_samples, track_ids):
         frame_number (int): 當前幀號。
 
     Returns:
-        pd.DataFrame: 包含提取數據的 DataFrame。
+        pl.DataFrame: 包含提取數據的 DataFrame。
     """
     records = []
     for i, sample in enumerate(data_3d_samples):
         track_id = track_ids[i]
-        keypoints = sample.keypoints
+
+        keypoints = sample.keypoints[0].tolist()
         records.append({
             'track_id': track_id,
             'keypoints_3d': keypoints
         })
 
-    return pd.DataFrame(records)
+    return pl.DataFrame(records)
 
 def merge_3d_data(new_person_df, pred_3d_pred_instances, track_ids):
 
@@ -265,15 +285,46 @@ def merge_3d_data(new_person_df, pred_3d_pred_instances, track_ids):
         frame_number (int): 當前幀號。
     """
     # 提取 3D 骨架數據
+
     data_df = extract_3d_data(pred_3d_pred_instances, track_ids)
+
     # 合併 3D 骨架數據到現有的 person_df
-    new_person_df = pd.merge(
-        new_person_df, data_df,
+    new_person_df = new_person_df.join(
+        data_df,
         on='track_id',
-        how='outer',  # 確保新舊數據都保留
-        suffixes=('', '_new')
+        how='left'
     )
     return new_person_df
+
+def postprocess_pose_lift(pose_lift_results, pose_results):
+    """後處理提升的 3D 骨架數據。"""
+    for idx, pose_lift_result in enumerate(pose_lift_results):
+        pose_lift_result.track_id = pose_results[idx].get('track_id', 1e4)
+
+        pred_instances = pose_lift_result.pred_instances
+        keypoints = pred_instances.keypoints
+        keypoint_scores = pred_instances.keypoint_scores
+        if keypoint_scores.ndim == 3:
+            keypoint_scores = np.squeeze(keypoint_scores, axis=1)
+            pose_lift_results[idx].pred_instances.keypoint_scores = keypoint_scores
+        if keypoints.ndim == 4:
+            keypoints = np.squeeze(keypoints, axis=1)
+
+        keypoints = keypoints[..., [0, 2, 1]]
+        keypoints[..., 0] = -keypoints[..., 0]
+        keypoints[..., 2] = -keypoints[..., 2]
+
+        # rebase height (z-axis)
+        # if not args.disable_rebase_keypoint:
+        keypoints[..., 2] -= np.min(
+            keypoints[..., 2], axis=-1, keepdims=True)
+
+        pose_lift_results[idx].pred_instances.keypoints = keypoints
+    pose_lift_results = sorted(
+            pose_lift_results, key=lambda x: x.get('track_id', 1e4))
+    
+    return pose_lift_results
+
     # # 更新 keypoints_3d 列，優先使用新數據
     # new_person_df['keypoints_3d'] = new_person_df['keypoints_3d_new'].combine_first(new_person_df['keypoints_3d'])
     # self.person_df.drop(columns=['keypoints_3d_new'], inplace=True)

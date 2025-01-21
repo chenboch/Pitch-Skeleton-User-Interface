@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import queue
 import os
-import pandas as pd
+import polars as pl
 from enum import Enum
 from PyQt5.QtWidgets import QGraphicsScene
 from ..vis_utils.vis_image import ImageDrawer
@@ -139,17 +139,19 @@ class VideoLoader:
         self.is_loading = False
         thread = None
     
-    def getVideoImage(self, frame_num:int) -> np.ndarray:
+    def get_video_image(self, frame_num:int) -> np.ndarray:
         return self.video_frames[frame_num].copy()
     
-    def saveVideo(self):
-        relative_path = os.path.relpath(self.folder_path, start="C:/Users/user/Desktop/Pitch-Skeleton-User-Interface/Db/Db_KCGM_Baseball")
+    def save_video(self):
+        # relative_path = os.path.relpath(self.folder_path, start="C:/Users/user/Desktop/Pitch-Skeleton-User-Interface/Db/Db_KCGM_Baseball")
         # 将空格替换为下划线
-        formatted_path = relative_path.replace(" ", "_")
+        # formatted_path = relative_path.replace(" ", "_")
  
-        fm_path = formatted_path.replace("\\", "_")
-        formatted_path = formatted_path.replace("\\", "_")
-        print(formatted_path)
+        # fm_path = formatted_path.replace("\\", "_")
+        # formatted_path = formatted_path.replace("\\", "_")
+        # print(formatted_path)
+        formatted_path = ""
+        fm_path = ""
         output_folder = os.path.join("../Db/Record", formatted_path+"_"+self.video_name)
         ann_folder = os.path.join("../Db/Data/annotations/train")
         img_folder = os.path.join("../Db/Data/images", formatted_path+"_"+self.video_name)
@@ -162,12 +164,12 @@ class VideoLoader:
         json_ann_path =  os.path.join(ann_folder, f"{fm_path}_{self.video_name}.json")
         save_person_df = self.image_drawer.pose_estimater.person_df
 
-        save_person_df.to_json(json_path, orient='records')
+        save_person_df.write_json(json_path)
 
-        save_person_df.to_json(json_ann_path, orient='records')
+        # save_person_df.write_json(json_ann_path)
 
-        save_location = os.path.join(output_folder, f"{formatted_path}_{self.video_name}_Sk26.mp4")
-
+        # save_location = os.path.join(output_folder, f"{formatted_path}_{self.video_name}.mp4")
+        save_location = os.path.join(output_folder, f"{self.video_name}.mp4")
         video_writer = cv2.VideoWriter(save_location, cv2.VideoWriter_fourcc(*'mp4v'), self.video_fps, self.video_size)
         # output_folder = os.path.join("../Db/Record", self.video_name)
         # ann_folder = os.path.join("../Db/Data/annotations/train")
@@ -193,7 +195,16 @@ class VideoLoader:
         if not video_writer.isOpened():
             print("Error while opening video writer!")
             return
+        
+        
+        for frame_num, frame in enumerate(self.video_frames):
+            if frame_num % 2 == 0:
+                video_writer.write(frame)
 
+        video_writer.release()
+        # save_location = os.path.join(output_folder, f"{formatted_path}_{self.video_name}_Sk26.mp4")
+        save_location = os.path.join(output_folder, f"{self.video_name}_Sk26.mp4")
+        video_writer = cv2.VideoWriter(save_location, cv2.VideoWriter_fourcc(*'mp4v'), self.video_fps, self.video_size)
         for frame_num, frame in enumerate(self.video_frames):
             img_path =  os.path.join(img_folder, f"{frame_num:08d}.jpg" )
             cv2.imwrite(img_path, frame)
@@ -217,9 +228,9 @@ class JsonLoader:
     def __init__(self, folder_path:str = None, file_name:str = None):
         self.folder_path = folder_path
         self.file_name = file_name
-        self.person_df = pd.DataFrame()
+        self.person_df = pl.DataFrame()
 
-    def load(self) -> pd.DataFrame:
+    def load_json(self) -> pl.DataFrame:
         if self.folder_path == None or self.file_name == None:
             return
         json_path = os.path.join(self.folder_path, f"{self.file_name}.json")
@@ -228,4 +239,5 @@ class JsonLoader:
         if not os.path.exists(json_path):
             return
         
-        self.person_df = pd.read_json(json_path)
+        self.person_df = pl.read_json(json_path)
+        print(self.person_df)

@@ -1,7 +1,9 @@
 import cv2
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, Qt, QThread
 import numpy as np
-import sys
+import polars as pl
+import logging
+import os
 import cv2
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QImage, QPixmap
@@ -123,3 +125,34 @@ class VideoWriterThread(QThread):
     def release(self):
         self.stop_writing()
         self.wait()  # 等待執行緒安全結束
+
+
+class JsonLoaderThread(QThread):
+    finished_signal = pyqtSignal(pl.DataFrame)  # 修正信號類型
+    
+    def __init__(self, folder_path: str, file_name: str):
+        super().__init__()
+        self.logger = logging.getLogger(self.__class__.__name__)  # 獲取 logger
+        self.folder_path = folder_path
+        self.file_name = file_name
+        self.person_df = pl.DataFrame()
+
+    def run(self):
+        """QThread 會自動執行這個方法"""
+        json_path = os.path.join(self.folder_path, f"{self.file_name}.json")
+        self.logger.info(f"Loading: {json_path}")
+
+        if not os.path.exists(json_path):
+            self.logger.error(f"Error: File not found - {json_path}")
+            self.finished_signal.emit(pl.DataFrame())  # 發送空 DataFrame，避免程式崩潰
+            return
+
+        self.person_df = pl.read_json(json_path)
+        self.logger.info(f"Finished loading: {self.file_name}")
+
+        self.finished_signal.emit(self.person_df)  # 發送正確的 DataFrame
+
+    def stop(self):
+        """安全地停止執行緒"""
+        self.quit()
+        self.wait()

@@ -5,7 +5,7 @@ from PyQt5.QtGui import QImage, QPixmap, QColor
 from cv_utils import VideoLoader
 
 
-class FrameView:
+class frame_view:
     def __init__(self, frame_view: QGraphicsView, view_scene:QGraphicsScene, video_loader:VideoLoader):
         self.frame_view = frame_view
         self.view_scene = view_scene
@@ -17,7 +17,7 @@ class FrameView:
         """Update the displayed frame with additional analysis."""
         # 更新當前的frame和frame_num
         if self.is_video and frame_num is not None:
-            frame = self.video_loader.getVideoImage(frame_num)
+            frame = self.video_loader.get_video_image(frame_num)
         countdown_time = self.updateTimers() 
         drawed_img = self.image_drawer.drawInfo(frame, frame_num, self.pose_estimater.kpt_buffer, countdown_time)
         self.show_image(drawed_img, self.view_scene, self.frame_view)

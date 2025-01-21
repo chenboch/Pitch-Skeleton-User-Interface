@@ -49,7 +49,7 @@ class PoseEstimater:
                 self.smooth_keypoints(person_ids, frame_num)
                 self.processed_frames.add(frame_num)
             if self.kpt_id is not None:
-                self.kpt_buffer = self.updateKptBuffer(frame_num)
+                self.kpt_buffer = self.update_keypoint_buffer(frame_num)
         else:
             #real time 處理方式
             pred_instances, person_ids = self.process_image(self.model, image, is_3d, select_id=self.person_id)
@@ -99,7 +99,7 @@ class PoseEstimater:
         )
     
         # 過濾出有效的邊界框和追蹤ID
-        online_bbox, online_ids = self.filterValidTargets(online_targets, select_id)
+        online_bbox, online_ids = self.filter_valid_targets(online_targets, select_id)
         # 姿態估計
         # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
         pose_results = inference_topdown(model.pose2d_estimator, img, np.array(online_bbox))
@@ -178,7 +178,7 @@ class PoseEstimater:
         pred_3d_data_samples = merge_data_samples(pose_lift_results)
         pred_3d_instances = pred_3d_data_samples.get('pred_instances', None)
 
-    def filterValidTargets(self, online_targets, select_id: int = None):
+    def filter_valid_targets(self, online_targets, select_id: int = None):
         """
         過濾出有效的追蹤目標。
 
@@ -254,7 +254,7 @@ class PoseEstimater:
     def setDetect(self, status:bool):
         self.is_detect = status
 
-    def updateKptBuffer(self, frame_num:int, window_length=17, polyorder=2):
+    def update_keypoint_buffer(self, frame_num:int, window_length=17, polyorder=2):
         filtered_df = self.person_df[
             (self.person_df['person_id'] == self.person_id) & 
             (self.person_df['frame_number'] < frame_num)

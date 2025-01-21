@@ -11,7 +11,7 @@ from cv_utils.cv_control import Camera, VideoLoader
 from utils.selector import PersonSelector, KptSelector
 from utils.analyze import PoseAnalyzer, JointAreaChecker
 from ui_utils.table_control import KeypointTable
-from ui_utils.graphicview_control import FrameView
+from ui_utils.graphicview_control import frame_view
 import cv2
 from UI_Control.vis_utils.vis_graph import GraphPlotter
 from UI_Control.vis_utils.vis_image import ImageDrawer
@@ -67,7 +67,7 @@ class PosePitchTabControl(QWidget):
         print(f"PoseCameraTabControl resized to: {new_size.width()}x{new_size.height()}")
         # 在此執行你想要的操作
         if self.video_loader.video_name is not None:
-            self.update_frame(frame_num=self.ui.frameSlider.value())
+            self.update_frame(frame_num=self.ui.frame_slider.value())
         super().resize_event(event)  
 
     def bindUI(self):
@@ -78,29 +78,29 @@ class PosePitchTabControl(QWidget):
         self.bindCheckBox()
     
     def bindVideoUI(self):
-        self.kpt_table = KeypointTable(self.ui.KptTable, self.pose_estimater)
-        self.ui.KptTable.cellActivated.connect(self.kpt_table.onCellClicked)
-        self.frame_view = FrameView(self.ui.FrameView, self.view_scene, self.video_loader)
-        self.ui.playBtn.clicked.connect(self.play_btn_clicked)
-        self.ui.backKeyBtn.clicked.connect(
-            lambda: self.ui.frameSlider.setValue(self.ui.frameSlider.value() - 1)
+        self.kpt_table = KeypointTable(self.ui.kpt_table, self.pose_estimater)
+        self.ui.kpt_table.cellActivated.connect(self.kpt_table.onCellClicked)
+        self.frame_view = frame_view(self.ui.frame_view, self.view_scene, self.video_loader)
+        self.ui.play_btn.clicked.connect(self.play_btn_clicked)
+        self.ui.back_key_btn.clicked.connect(
+            lambda: self.ui.frame_slider.setValue(self.ui.frame_slider.value() - 1)
         )
-        self.ui.forwardKeyBtn.clicked.connect(
-            lambda: self.ui.frameSlider.setValue(self.ui.frameSlider.value() + 1)
+        self.ui.forward_key_btn.clicked.connect(
+            lambda: self.ui.frame_slider.setValue(self.ui.frame_slider.value() + 1)
         )
-        self.ui.frameSlider.valueChanged.connect(self.analyze_frame)
+        self.ui.frame_slider.valueChanged.connect(self.analyze_frame)
 
-        self.ui.FrameView.mouse_press_event = self.mouse_press_event
+        self.ui.frame_view.mouse_press_event = self.mouse_press_event
 
     def bindCheckBox(self):
         """Bind UI CheckBox to their corresponding functions."""
         self.ui.cameraCheckBox.stateChanged.connect(self.toggleCamera)
         self.ui.recordCheckBox.stateChanged.connect(self.toggleRecord)
-        self.ui.selectCheckBox.stateChanged.connect(self.toggle_select)
-        self.ui.showSkeletonCheckBox.stateChanged.connect(self.toggleShowSkeleton)
-        self.ui.selectKptCheckBox.stateChanged.connect(self.toggleKptSelect)
-        self.ui.showAngleCheckBox.stateChanged.connect(self.toggleShowAngleInfo)
-        self.ui.showBboxCheckBox.stateChanged.connect(self.toggleShowBbox)
+        self.ui.select_checkbox.stateChanged.connect(self.toggle_select)
+        self.ui.show_skeleton_checkbox.stateChanged.connect(self.toggle_show_skeleton)
+        self.ui.select_kpt_checkbox.stateChanged.connect(self.toggle_kpt_select)
+        self.ui.show_angle_checkbox.stateChanged.connect(self.toggle_show_angle_info)
+        self.ui.show_bbox_checkbox.stateChanged.connect(self.toggle_show_bbox)
         self.ui.showLineCheckBox.stateChanged.connect(self.toggleShowGrid)  
         self.ui.startPitchCheckBox.stateChanged.connect(self.togglePitching)
 
@@ -112,27 +112,27 @@ class PosePitchTabControl(QWidget):
             QMessageBox.warning(self, "影片讀取中", "請稍等!")
             return
         self.is_play = not self.is_play
-        self.ui.playBtn.setText("||" if self.is_play else "▶︎")
+        self.ui.play_btn.setText("||" if self.is_play else "▶︎")
         if self.is_play:
-            self.play_frame(self.ui.frameSlider.value())
+            self.play_frame(self.ui.frame_slider.value())
 
     def play_frame(self, start_num:int=0):
         for i in range(start_num, self.video_loader.total_frames):
             if not self.is_play:
                 break
-            self.ui.frameSlider.setValue(i)
+            self.ui.frame_slider.setValue(i)
             if i == self.video_loader.total_frames - 1 and self.is_play:
                 self.play_btn_clicked()
             cv2.waitKey(15)
 
     def videoSilder(self, visible:bool):
         elements = [
-            self.ui.backKeyBtn,
-            self.ui.playBtn,
-            self.ui.forwardKeyBtn,
-            self.ui.frameSlider,
-            self.ui.frameNumLabel,
-            self.ui.CurveView
+            self.ui.back_key_btn,
+            self.ui.play_btn,
+            self.ui.forward_key_btn,
+            self.ui.frame_slider,
+            self.ui.frame_num_label,
+            self.ui.curve_view
         ]
         
         for element in elements:
@@ -152,13 +152,13 @@ class PosePitchTabControl(QWidget):
                 QMessageBox.warning(self, "無法開啟相機", "請先暫停播放影片")
                 return
             self.reset()
-            self.ui.showAngleCheckBox.setCheckState(0)
-            self.ui.selectCheckBox.setCheckState(0)
-            self.ui.selectKptCheckBox.setCheckState(0)
+            self.ui.show_angle_checkbox.setCheckState(0)
+            self.ui.select_checkbox.setCheckState(0)
+            self.ui.select_kpt_checkbox.setCheckState(0)
             self.is_video = False
             frame_width, frame_height, fps = self.camera.toggleCamera(True)
             self.model.setImageSize((frame_width, frame_height))
-            self.ui.ResolutionLabel.setText(f"(0, 0) - ({frame_width} x {frame_height}), FPS: {fps}")
+            self.ui.resolution_label.setText(f"(0, 0) - ({frame_width} x {frame_height}), FPS: {fps}")
             self.timer.start(1)
             self.videoSilder(visible=False)
         else:
@@ -178,8 +178,8 @@ class PosePitchTabControl(QWidget):
                 self.ui.startPitchCheckBox.setCheckState(0)
                 QMessageBox.warning(self, "無法開始投球模式", "請先開啟相機")
                 return
-            if not self.ui.showSkeletonCheckBox.isChecked():
-                self.ui.showSkeletonCheckBox.setCheckState(2)
+            if not self.ui.show_skeleton_checkbox.isChecked():
+                self.ui.show_skeleton_checkbox.setCheckState(2)
              
             self.is_pitching = True
             self.record_checker = JointAreaChecker(self.camera.frame_size)
@@ -211,12 +211,12 @@ class PosePitchTabControl(QWidget):
     def toggle_select(self, state:int):
         """Select a person based on checkbox state."""
         if state == 2:
-            if not self.ui.showSkeletonCheckBox.isChecked():
-                self.ui.selectCheckBox.setCheckState(0)
+            if not self.ui.show_skeleton_checkbox.isChecked():
+                self.ui.select_checkbox.setCheckState(0)
                 QMessageBox.warning(self, "無法選擇人", "請選擇顯示人體骨架!")
                 return
             self.person_selector = PersonSelector()
-            frame_num = self.ui.frameSlider.value() if self.is_video else None
+            frame_num = self.ui.frame_slider.value() if self.is_video else None
             search_person_df = self.pose_estimater.get_person_df(frame_num=frame_num) if frame_num is not None else self.pose_estimater.pre_person_df
             self.person_selector.select(search_person_df = search_person_df)
             self.pose_estimater.setPersonId(self.person_selector.selected_id)
@@ -224,11 +224,11 @@ class PosePitchTabControl(QWidget):
             self.pose_estimater.setPersonId(None)
             self.person_selector = None
 
-    def toggleKptSelect(self, state:int):
+    def toggle_kpt_select(self, state:int):
         """Toggle keypoint selection and trajectory visualization."""  
         if state ==2:
-            if not self.ui.selectCheckBox.isChecked():
-                self.ui.selectKptCheckBox.setCheckState(0)
+            if not self.ui.select_checkbox.isChecked():
+                self.ui.select_kpt_checkbox.setCheckState(0)
                 QMessageBox.warning(self, "無法選擇關節點", "請選擇人!")
                 return
             self.kpt_selector = KptSelector()
@@ -240,31 +240,31 @@ class PosePitchTabControl(QWidget):
             self.pose_estimater.clear_keypoint_buffer()
             self.image_drawer.setShowTraj(False)
 
-    def toggleShowSkeleton(self, state:int):
+    def toggle_show_skeleton(self, state:int):
         """Toggle skeleton detection and FPS control."""
         print("skeleton: "+ str(state))
         if state == 2 and self.ui.recordCheckBox.isChecked():
-            self.ui.showSkeletonCheckBox.setCheckState(0)
+            self.ui.show_skeleton_checkbox.setCheckState(0)
             QMessageBox.warning(self, "無法選擇人", "請選擇顯示人體骨架!")
             return
         is_checked = state == 2
         if not is_checked:
-            self.ui.showAngleCheckBox.setCheckState(0)
-            self.ui.selectKptCheckBox.setCheckState(0)
-            self.ui.selectCheckBox.setCheckState(0)
+            self.ui.show_angle_checkbox.setCheckState(0)
+            self.ui.select_kpt_checkbox.setCheckState(0)
+            self.ui.select_checkbox.setCheckState(0)
             
         self.pose_estimater.setDetect(is_checked)
         self.image_drawer.setShowSkeleton(is_checked)
         if self.camera is not None and not self.is_video:
             self.camera.setFPSControl(15 if is_checked else 1)
 
-    def toggleShowBbox(self, state:int):
+    def toggle_show_bbox(self, state:int):
         """Toggle bounding box visibility."""
         self.image_drawer.setShowBbox(state == 2)
 
-    def toggleShowAngleInfo(self, state:int):
-        if not self.ui.selectCheckBox.isChecked():
-            self.ui.showAngleCheckBox.setCheckState(0)
+    def toggle_show_angle_info(self, state:int):
+        if not self.ui.select_checkbox.isChecked():
+            self.ui.show_angle_checkbox.setCheckState(0)
             QMessageBox.warning(self, "無法顯示關節點角度資訊", "請選擇人!")
             return
         if state == 2:  
@@ -285,9 +285,9 @@ class PosePitchTabControl(QWidget):
         """Analyze and process each frame from the camera or video"""
         fps = 0
         if self.is_video:
-            frame_num = self.ui.frameSlider.value()
-            self.ui.frameNumLabel.setText(f'{frame_num}/{len(self.video_loader.video_frames) - 1}')
-            frame = self.video_loader.getVideoImage(frame_num)
+            frame_num = self.ui.frame_slider.value()
+            self.ui.frame_num_label.setText(f'{frame_num}/{len(self.video_loader.video_frames) - 1}')
+            frame = self.video_loader.get_video_image(frame_num)
             fps= self.pose_estimater.detect_keypoints(frame, frame_num, is_video=True)
             if self.pose_estimater.track_id is not None:
                 self.pose_analyzer.addAnalyzeInfo(frame_num)
@@ -305,30 +305,30 @@ class PosePitchTabControl(QWidget):
                 fps = self.pose_estimater.detect_keypoints(frame, is_video=False)
                 if self.is_pitching:
                     if self.ui.startPitchCheckBox.isChecked() and not self.ui.recordCheckBox.isChecked() and self.pose_estimater.track_id is None:
-                        self.ui.selectCheckBox.setCheckState(0)
-                        self.ui.selectCheckBox.setCheckState(2)
+                        self.ui.select_checkbox.setCheckState(0)
+                        self.ui.select_checkbox.setCheckState(2)
                     self.pitherAnaylze()
                 self.update_frame(frame=frame)
                 
-        self.ui.FPSInfoLabel.setText(f"{fps:02d}")
+        self.ui.fps_info_label.setText(f"{fps:02d}")
     
     def handleVideoEnd(self):
         """Handle the logic when video reaches its end."""
         self.play_times -= 1
-        self.video_loader.saveVideo()
+        self.video_loader.save_video()
 
         if self.play_times > 0:
             # Replay the video
             self.play_btn_clicked()
-            self.ui.frameSlider.setValue(0)
+            self.ui.frame_slider.setValue(0)
             self.play_btn_clicked()
         else:
             # Stop playback and reset
             self.play_btn_clicked()
             self.ui.cameraCheckBox.setCheckState(2)
-            self.ui.showSkeletonCheckBox.setCheckState(0)
-            self.ui.showSkeletonCheckBox.setCheckState(2)
-            self.ui.selectCheckBox.setCheckState(2)
+            self.ui.show_skeleton_checkbox.setCheckState(0)
+            self.ui.show_skeleton_checkbox.setCheckState(2)
+            self.ui.select_checkbox.setCheckState(2)
             self.ui.startPitchCheckBox.setCheckState(2)
             self.play_times = 2
 
@@ -348,10 +348,10 @@ class PosePitchTabControl(QWidget):
     
     def initRecorderTimer(self, duration:int):
         if self.record_timer is None:
-            self.ui.showBboxCheckBox.setCheckState(0)
-            self.ui.selectKptCheckBox.setCheckState(0)
-            self.ui.selectCheckBox.setCheckState(0)
-            self.ui.showSkeletonCheckBox.setCheckState(0)
+            self.ui.show_bbox_checkbox.setCheckState(0)
+            self.ui.select_kpt_checkbox.setCheckState(0)
+            self.ui.select_checkbox.setCheckState(0)
+            self.ui.show_skeleton_checkbox.setCheckState(0)
             self.ui.recordCheckBox.setCheckState(2)
             self.record_timer = Timer(duration)
             self.record_timer.start()
@@ -360,11 +360,11 @@ class PosePitchTabControl(QWidget):
         """Update the displayed frame with additional analysis."""
         # 更新當前的frame和frame_num
         if self.is_video and frame_num is not None:
-            frame = self.video_loader.getVideoImage(frame_num)
+            frame = self.video_loader.get_video_image(frame_num)
         countdown_time = self.updateTimers() 
         drawed_img = self.image_drawer.drawInfo(frame, frame_num, self.pose_estimater.kpt_buffer, countdown_time)
-        self.show_image(drawed_img, self.view_scene, self.ui.FrameView)
-        self.graph_plotter.resize_graph(self.ui.CurveView.width(),self.ui.CurveView.height())
+        self.show_image(drawed_img, self.view_scene, self.ui.frame_view)
+        self.graph_plotter.resize_graph(self.ui.curve_view.width(),self.ui.curve_view.height())
 
     def updateTimers(self):
         countdown_time = None
@@ -399,7 +399,7 @@ class PosePitchTabControl(QWidget):
             return
         # 若影片正在讀取中，定時檢查讀取狀況
         if self.video_loader.is_loading:
-            # self.ui.videoNameLabel.setText("讀取影片中")
+            # self.ui.video_name_label.setText("讀取影片中")
             QTimer.singleShot(100, self.check_video_load)  # 每100ms 檢查一次
             return
         # 影片讀取完成後更新 UI 元素
@@ -414,35 +414,35 @@ class PosePitchTabControl(QWidget):
         self.update_frame(frame_num=0)
         self.model.setImageSize(self.video_loader.video_size)
         video_size = self.video_loader.video_size
-        self.ui.ResolutionLabel.setText(f"(0,0) - {video_size[0]} x {video_size[1]}")
+        self.ui.resolution_label.setText(f"(0,0) - {video_size[0]} x {video_size[1]}")
 
     def initanalyze_frame(self):
-        self.ui.showSkeletonCheckBox.setCheckState(2)
-        frame = self.video_loader.getVideoImage(0)
+        self.ui.show_skeleton_checkbox.setCheckState(2)
+        frame = self.video_loader.get_video_image(0)
         fps = self.pose_estimater.detect_keypoints(frame, 0, is_video=True)
-        self.ui.selectCheckBox.setCheckState(2)
-        self.ui.selectKptCheckBox.setCheckState(2)
-        self.ui.showAngleCheckBox.setCheckState(2)
-        self.ui.playBtn.click()
+        self.ui.select_checkbox.setCheckState(2)
+        self.ui.select_kpt_checkbox.setCheckState(2)
+        self.ui.show_angle_checkbox.setCheckState(2)
+        self.ui.play_btn.click()
 
     def init_frame_slider(self):
         """初始化影片滑桿和相關的標籤。"""
         total_frames = self.video_loader.total_frames
-        self.ui.frameSlider.setMinimum(0)
-        self.ui.frameSlider.setMaximum(total_frames - 1)
-        self.ui.frameSlider.setValue(0)
-        self.ui.frameNumLabel.setText(f'0/{total_frames - 1}')
+        self.ui.frame_slider.setMinimum(0)
+        self.ui.frame_slider.setMaximum(total_frames - 1)
+        self.ui.frame_slider.setValue(0)
+        self.ui.frame_num_label.setText(f'0/{total_frames - 1}')
 
-    def resetFrameSlider(self):
-        self.ui.frameSlider.setValue(0)
-        self.ui.frameSlider.setRange(0, 0)
+    def resetframe_slider(self):
+        self.ui.frame_slider.setValue(0)
+        self.ui.frame_slider.setRange(0, 0)
 
     def init_graph(self):
         """初始化圖表和模型設定。"""
         total_frames = self.video_loader.total_frames
         print("video frames: "+ str(total_frames))
         self.graph_plotter._init_graph(total_frames) 
-        self.show_graph(self.curve_scene, self.ui.CurveView)
+        self.show_graph(self.curve_scene, self.ui.curve_view)
 
     def show_graph(self, scene:QGraphicsScene, graphicview:QGraphicsView):
         scene.clear()
@@ -457,7 +457,7 @@ class PosePitchTabControl(QWidget):
         self.pose_analyzer.reset()
         self.graph_plotter.reset()
         self.image_drawer.reset()
-        self.resetFrameSlider()
+        self.resetframe_slider()
         self.view_scene.clear()
         self.curve_scene.clear()
 
@@ -467,7 +467,6 @@ class PosePitchTabControl(QWidget):
         if image is None:
             print(self.video_loader.total_frames)
             # print(self.video_loader.video_frames)
-            exit()
         h, w = image.shape[:2]
         qImg = QImage(image, w, h, 3 * w, QImage.Format_RGB888).rgbSwapped()
         pixmap = QPixmap.fromImage(qImg)
@@ -478,31 +477,31 @@ class PosePitchTabControl(QWidget):
 
     def mouse_press_event(self, event):
         """Handle mouse events for person and keypoint selection."""
-        if not self.ui.FrameView.rect().contains(event.pos()):
+        if not self.ui.frame_view.rect().contains(event.pos()):
             return
         
-        scene_pos = self.ui.FrameView.mapToScene(event.pos())
+        scene_pos = self.ui.frame_view.mapToScene(event.pos())
         x, y = scene_pos.x(), scene_pos.y()
-        search_person_df = self.pose_estimater.get_person_df(frame_num = self.ui.frameSlider.value()) if self.is_video else self.pose_estimater.pre_person_df 
+        search_person_df = self.pose_estimater.get_person_df(frame_num = self.ui.frame_slider.value()) if self.is_video else self.pose_estimater.pre_person_df 
 
-        if self.ui.selectCheckBox.isChecked() and not self.kpt_table.label_kpt :
+        if self.ui.select_checkbox.isChecked() and not self.kpt_table.label_kpt :
             if event.button() == Qt.LeftButton:
                 self.person_selector.select(x, y, search_person_df)
                 self.pose_estimater.setPersonId(self.person_selector.selected_id)
 
-        if self.ui.selectKptCheckBox.isChecked() and not self.kpt_table.label_kpt :
+        if self.ui.select_kpt_checkbox.isChecked() and not self.kpt_table.label_kpt :
             if event.button() == Qt.LeftButton:
                 self.kpt_selector.select(x, y, search_person_df)
                 self.pose_estimater.setKptId(self.kpt_selector.selected_id)
 
         if self.kpt_table.label_kpt:
             if event.button() == Qt.LeftButton:
-                self.kpt_table.sendToTable(x, y, 1, self.ui.frameSlider.value())
+                self.kpt_table.sendToTable(x, y, 1, self.ui.frame_slider.value())
             elif event.button() == Qt.RightButton:
-                self.kpt_table.sendToTable(0, 0, 0, self.ui.frameSlider.value())
+                self.kpt_table.sendToTable(0, 0, 0, self.ui.frame_slider.value())
 
         if self.is_video:
-            self.update_frame(frame_num=self.ui.frameSlider.value())
+            self.update_frame(frame_num=self.ui.frame_slider.value())
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

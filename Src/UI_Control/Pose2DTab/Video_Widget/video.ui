@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Video_Widget</class>
- <widget class="QWidget" name="Video_Widget">
+ <class>video_widget</class>
+ <widget class="QWidget" name="video_widget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -10,14 +10,19 @@
     <height>800</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <family>微軟正黑體</family>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout" stretch="10,2">
+  <layout class="QHBoxLayout" name="horizontalLayout_5">
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,4,2,0">
+    <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,2,0,0">
      <item>
-      <widget class="QLabel" name="ResolutionLabel">
+      <widget class="QLabel" name="resolution_label">
        <property name="maximumSize">
         <size>
          <width>16777215</width>
@@ -36,17 +41,24 @@
       </widget>
      </item>
      <item>
-      <widget class="QGraphicsView" name="FrameView">
-       <property name="minimumSize">
-        <size>
-         <width>480</width>
-         <height>360</height>
-        </size>
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="2">
+       <property name="spacing">
+        <number>3</number>
        </property>
-      </widget>
+       <item>
+        <widget class="QGraphicsView" name="frame_view">
+         <property name="minimumSize">
+          <size>
+           <width>480</width>
+           <height>360</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
-      <widget class="QGraphicsView" name="CurveView">
+      <widget class="QGraphicsView" name="curve_view">
        <property name="maximumSize">
         <size>
          <width>16777215</width>
@@ -58,7 +70,7 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <item>
-        <widget class="QPushButton" name="backKeyBtn">
+        <widget class="QPushButton" name="back_key_btn">
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -77,7 +89,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="playBtn">
+        <widget class="QPushButton" name="play_btn">
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -112,7 +124,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="forwardKeyBtn">
+        <widget class="QPushButton" name="forward_key_btn">
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -131,7 +143,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QSlider" name="frameSlider">
+        <widget class="QSlider" name="frame_slider">
          <property name="minimumSize">
           <size>
            <width>300</width>
@@ -144,7 +156,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="frameNumLabel">
+        <widget class="QLabel" name="frame_num_label">
          <property name="minimumSize">
           <size>
            <width>20</width>
@@ -161,12 +173,18 @@
     </layout>
    </item>
    <item>
-    <widget class="QTabWidget" name="tabWidget">
+    <widget class="QTabWidget" name="tab_widget">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>400</width>
+       <height>0</height>
+      </size>
      </property>
      <property name="maximumSize">
       <size>
@@ -176,11 +194,11 @@
      </property>
      <property name="font">
       <font>
-       <pointsize>14</pointsize>
+       <pointsize>12</pointsize>
       </font>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -188,7 +206,7 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_5">
        <item>
-        <widget class="QGroupBox" name="settingGroupbox">
+        <widget class="QGroupBox" name="setting_groupbox">
          <property name="minimumSize">
           <size>
            <width>450</width>
@@ -211,7 +229,7 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
           <item>
-           <widget class="QGroupBox" name="FileGroupbox">
+           <widget class="QGroupBox" name="file_groupbox">
             <property name="title">
              <string>檔案</string>
             </property>
@@ -219,14 +237,14 @@
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_6">
                <item>
-                <widget class="QLabel" name="NameLabel">
+                <widget class="QLabel" name="name_label">
                  <property name="text">
                   <string>檔名:</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="videoNameLabel">
+                <widget class="QLabel" name="video_name_label">
                  <property name="minimumSize">
                   <size>
                    <width>130</width>
@@ -246,14 +264,14 @@
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_2">
                <item>
-                <widget class="QLabel" name="FPSLabel">
+                <widget class="QLabel" name="fps_label">
                  <property name="text">
                   <string>FPS:</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="FPSInfoLabel">
+                <widget class="QLabel" name="fps_info_label">
                  <property name="minimumSize">
                   <size>
                    <width>130</width>
@@ -273,11 +291,11 @@
              <item>
               <layout class="QGridLayout" name="gridLayout">
                <item row="1" column="0">
-                <widget class="QPushButton" name="loadOriginalVideoBtn">
+                <widget class="QPushButton" name="load_original_video_btn">
                  <property name="minimumSize">
                   <size>
                    <width>150</width>
-                   <height>40</height>
+                   <height>30</height>
                   </size>
                  </property>
                  <property name="text">
@@ -285,29 +303,16 @@
                  </property>
                 </widget>
                </item>
-               <item row="2" column="0">
-                <widget class="QPushButton" name="loadProcessedVideoBtn">
+               <item row="1" column="1">
+                <widget class="QPushButton" name="load_processed_video_btn">
                  <property name="minimumSize">
                   <size>
                    <width>150</width>
-                   <height>40</height>
+                   <height>30</height>
                   </size>
                  </property>
                  <property name="text">
                   <string>載入處理過的影片</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="1">
-                <widget class="QPushButton" name="startCodeBtn">
-                 <property name="minimumSize">
-                  <size>
-                   <width>150</width>
-                   <height>40</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>處理和儲存</string>
                  </property>
                 </widget>
                </item>
@@ -317,13 +322,35 @@
            </widget>
           </item>
           <item>
-           <widget class="QGroupBox" name="DisplayGroupBox">
+           <widget class="QGroupBox" name="groupBox">
+            <property name="title">
+             <string>2D3D Process</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_6">
+             <item>
+              <widget class="QPushButton" name="start_code_btn">
+               <property name="minimumSize">
+                <size>
+                 <width>150</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>開始分析</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="display_groupbox">
             <property name="title">
              <string>顯示資訊</string>
             </property>
             <layout class="QGridLayout" name="gridLayout_2">
              <item row="0" column="1">
-              <widget class="QCheckBox" name="showSkeletonCheckBox">
+              <widget class="QCheckBox" name="show_skeleton_checkbox">
                <property name="text">
                 <string>人體骨架</string>
                </property>
@@ -333,7 +360,7 @@
               </widget>
              </item>
              <item row="0" column="2">
-              <widget class="QCheckBox" name="showBboxCheckBox">
+              <widget class="QCheckBox" name="show_bbox_checkbox">
                <property name="text">
                 <string>人物框</string>
                </property>
@@ -346,21 +373,21 @@
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QCheckBox" name="selectCheckBox">
+              <widget class="QCheckBox" name="select_checkbox">
                <property name="text">
                 <string>選擇人</string>
                </property>
               </widget>
              </item>
              <item row="1" column="2">
-              <widget class="QCheckBox" name="selectKptCheckBox">
+              <widget class="QCheckBox" name="select_kpt_checkbox">
                <property name="text">
                 <string>選擇關節點</string>
                </property>
               </widget>
              </item>
              <item row="2" column="1">
-              <widget class="QCheckBox" name="showAngleCheckBox">
+              <widget class="QCheckBox" name="show_angle_checkbox">
                <property name="text">
                 <string>顯示角度</string>
                </property>
@@ -393,7 +420,7 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <item>
-        <widget class="QGroupBox" name="IdAdjustGroupbox">
+        <widget class="QGroupBox" name="id_adjust_groupbox">
          <property name="title">
           <string>手動ID修正</string>
          </property>
@@ -401,7 +428,7 @@
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_4">
             <item>
-             <widget class="QLabel" name="IdLabel">
+             <widget class="QLabel" name="id_label">
               <property name="minimumSize">
                <size>
                 <width>120</width>
@@ -420,7 +447,7 @@
              </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="beforeCorrectId">
+             <widget class="QSpinBox" name="before_correct_id">
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
               </property>
@@ -450,14 +477,14 @@
              </widget>
             </item>
             <item>
-             <widget class="QSpinBox" name="afterCorrectId">
+             <widget class="QSpinBox" name="after_correct_id">
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="IdCorrectBtn">
+             <widget class="QPushButton" name="id_correct_btn">
               <property name="minimumSize">
                <size>
                 <width>100</width>
@@ -481,13 +508,13 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="KptAdjustGroupbox">
+        <widget class="QGroupBox" name="kpt_adjust_groupbox">
          <property name="title">
           <string>手動關節點修正</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_9">
           <item>
-           <widget class="QTableWidget" name="KptTable">
+           <widget class="QTableWidget" name="kpt_table">
             <property name="minimumSize">
              <size>
               <width>400</width>
@@ -499,6 +526,11 @@
               <width>16777215</width>
               <height>16777215</height>
              </size>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
             </property>
             <column>
              <property name="text">
@@ -517,7 +549,12 @@
             </column>
             <column>
              <property name="text">
-              <string>有無更改</string>
+              <string>Z</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Conf.</string>
              </property>
             </column>
            </widget>

@@ -40,10 +40,10 @@ class PoseCameraTabControl(QWidget):
         """Bind UI elements to their corresponding functions."""
         self.ui.cameraCheckBox.stateChanged.connect(self.toggleCamera)
         self.ui.recordCheckBox.stateChanged.connect(self.toggleRecord)
-        self.ui.selectCheckBox.stateChanged.connect(self.toggle_select)
-        self.ui.showSkeletonCheckBox.stateChanged.connect(self.toggleShowSkeleton)
-        self.ui.selectKptCheckBox.stateChanged.connect(self.toggleKptSelect)
-        self.ui.showBboxCheckBox.stateChanged.connect(self.toggleShowBbox)
+        self.ui.select_checkbox.stateChanged.connect(self.toggle_select)
+        self.ui.show_skeleton_checkbox.stateChanged.connect(self.toggle_show_skeleton)
+        self.ui.select_kpt_checkbox.stateChanged.connect(self.toggle_kpt_select)
+        self.ui.show_bbox_checkbox.stateChanged.connect(self.toggle_show_bbox)
         self.ui.showLineCheckBox.stateChanged.connect(self.toggleShowGrid)
         self.ui.CameraIdInput.valueChanged.connect(self.changeCamera)
 
@@ -52,7 +52,7 @@ class PoseCameraTabControl(QWidget):
         if state == 2:
             frame_width, frame_height, fps = self.camera.toggleCamera(True)
             self.model.setImageSize((frame_width, frame_height))
-            self.ui.ResolutionLabel.setText(f"(0, 0) - ({frame_width} x {frame_height}), FPS: {fps}")
+            self.ui.resolution_label.setText(f"(0, 0) - ({frame_width} x {frame_height}), FPS: {fps}")
             self.timer.start(1)
         else:
             self.camera.toggleCamera(False)
@@ -62,7 +62,7 @@ class PoseCameraTabControl(QWidget):
         """Start or stop video recording."""
         if state == 2:
             self.startRecording()
-            self.ui.showSkeletonCheckBox.setChecked(False)
+            self.ui.show_skeleton_checkbox.setChecked(False)
         else:
             self.camera.stop_recording()
 
@@ -72,13 +72,13 @@ class PoseCameraTabControl(QWidget):
         output_dir = f'../../Db/Record/C{self.ui.CameraIdInput.value()}_Fps120_{current_time}'
         os.makedirs(output_dir, exist_ok=True)
         video_filename = os.path.join(output_dir, f'C{self.ui.CameraIdInput.value()}_Fps120_{current_time}.mp4')
-        self.ui.showSkeletonCheckBox.setChecked(False)
+        self.ui.show_skeleton_checkbox.setChecked(False)
         self.camera.startRecording(video_filename)
 
     def toggle_select(self, state:int):
         """Select a person based on checkbox state."""
-        if not self.ui.showSkeletonCheckBox.isChecked():
-            self.ui.selectCheckBox.setCheckState(0)
+        if not self.ui.show_skeleton_checkbox.isChecked():
+            self.ui.select_checkbox.setCheckState(0)
             QMessageBox.warning(self, "無法選擇人", "請選擇顯示人體骨架!")
             return
         if state == 2:
@@ -87,10 +87,10 @@ class PoseCameraTabControl(QWidget):
         else:
             self.pose_estimater.setPersonId(None)
 
-    def toggleKptSelect(self, state:int):
+    def toggle_kpt_select(self, state:int):
         """Toggle keypoint selection and trajectory visualization."""
-        if not self.ui.selectCheckBox.isChecked():
-            self.ui.selectKptCheckBox.setCheckState(0)
+        if not self.ui.select_checkbox.isChecked():
+            self.ui.select_kpt_checkbox.setCheckState(0)
             QMessageBox.warning(self, "無法選擇關節點", "請選擇人!")
             return
         is_checked = state == 2
@@ -98,14 +98,14 @@ class PoseCameraTabControl(QWidget):
         self.pose_estimater.clear_keypoint_buffer()
         self.image_drawer.setShowTraj(is_checked)
 
-    def toggleShowSkeleton(self, state:int):
+    def toggle_show_skeleton(self, state:int):
         """Toggle skeleton detection and FPS control."""
         is_checked = state == 2
         self.pose_estimater.setDetect(is_checked)
         self.image_drawer.setShowSkeleton(is_checked)
         self.camera.setFPSControl(15 if is_checked else 1)
 
-    def toggleShowBbox(self, state:int):
+    def toggle_show_bbox(self, state:int):
         """Toggle bounding box visibility."""
         self.image_drawer.setShowBbox(state == 2)
 
@@ -122,13 +122,13 @@ class PoseCameraTabControl(QWidget):
         if not self.camera.frame_buffer.empty():
             frame = self.camera.frame_buffer.get().copy()
             fps = self.pose_estimater.detect_keypoints(frame, is_video=False)
-            self.ui.FPSInfoLabel.setText(f"{fps:02d}")
+            self.ui.fps_info_label.setText(f"{fps:02d}")
             self.update_frame(frame)
 
     def update_frame(self, frame: np.ndarray):
         """Update the displayed frame with additional analysis."""
         drawed_img = self.image_drawer.drawInfo(img = frame, kpt_buffer = self.pose_estimater.kpt_buffer)
-        self.show_image(drawed_img, self.camera_scene, self.ui.FrameView)
+        self.show_image(drawed_img, self.camera_scene, self.ui.frame_view)
 
     def show_image(self, image: np.ndarray, scene: QGraphicsScene, GraphicsView: QGraphicsView):
         """Display an image in the QGraphicsView."""
@@ -143,19 +143,19 @@ class PoseCameraTabControl(QWidget):
 
     def mouse_press_event(self, event):
         """Handle mouse events for person and keypoint selection."""
-        if not self.ui.FrameView.rect().contains(event.pos()):
+        if not self.ui.frame_view.rect().contains(event.pos()):
             return
         
-        scene_pos = self.ui.FrameView.mapToScene(event.pos())
+        scene_pos = self.ui.frame_view.mapToScene(event.pos())
         x, y = scene_pos.x(), scene_pos.y()
         search_person_df = self.pose_estimater.pre_person_df
 
-        if self.ui.selectCheckBox.isChecked() and event.button() == Qt.LeftButton:
+        if self.ui.select_checkbox.isChecked() and event.button() == Qt.LeftButton:
             print(search_person_df)
             self.person_selector.select(x, y, search_person_df)
             self.pose_estimater.setPersonId(self.person_selector.selected_id)
 
-        if self.ui.selectKptCheckBox.isChecked() and event.button() == Qt.LeftButton:
+        if self.ui.select_kpt_checkbox.isChecked() and event.button() == Qt.LeftButton:
             self.kpt_selector.select(x, y, search_person_df)
             self.pose_estimater.setKptId(self.kpt_selector.selected_id)
 

@@ -163,3 +163,5 @@ cython_debug/
 Db
 Src/mmpose_main/work_dirs
 Src/mmpose_main/data
+Src/mmpose_main/vis_results
+Src/DSTA_main/checkpoints

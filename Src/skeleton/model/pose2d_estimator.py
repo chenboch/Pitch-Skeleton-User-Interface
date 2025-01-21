@@ -1,5 +1,9 @@
 from argparse import ArgumentParser
-from mmpose.apis import init_model
+from mmpose.apis import init_model, inference_topdown
+from mmpose.structures import (PoseDataSample, merge_data_samples,
+                               split_instances)
+import numpy as np
+
 
 class Pose2DEstimator(object):
     def __init__(self):
@@ -8,6 +12,21 @@ class Pose2DEstimator(object):
             self.pose2d_args.pose_config,
             self.pose2d_args.pose_checkpoint
         )
+
+    def process_image(self, image:np.ndarray, bbox:np.array):
+        """_summary_
+
+        Args:
+            image (np.ndarray): _description_
+            bbox (np.array): _description_
+
+        Returns:
+            _type_: _description_
+        """        
+
+        pose_results = inference_topdown(self.pose2d_estimator, image, bbox)
+        data_samples = merge_data_samples(pose_results)
+        return pose_results, data_samples.get('pred_instances', None)
 
     def setPose2DParser(self) -> ArgumentParser:
         parser = ArgumentParser()

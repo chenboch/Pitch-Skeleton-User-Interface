@@ -1,4 +1,5 @@
 import pyqtgraph as pg
+
 from PyQt5.QtGui import QFont, QColor
 from .analyze import PoseAnalyzer
 import numpy as np

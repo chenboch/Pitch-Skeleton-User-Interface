@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
+import polars as pl
 from PIL import Image, ImageDraw, ImageFont
 from .analyze import PoseAnalyzer
 import os
@@ -10,6 +10,7 @@ from scipy.signal import savgol_filter
 from skeleton.datasets import halpe26_keypoint_info
 import sys
 import time
+import logging
 
 try:
     colors = np.round(
@@ -27,13 +28,14 @@ else:
 
 class ImageDrawer():
     def __init__(self, pose_estimater=None, pose_analyzer:PoseAnalyzer=None, angle_name:str = "右手肘"):
+        self.logger = logging.getLogger(self.__class__.__name__)  # 獲取當前類的日誌對象
         # self.font_path = os.path.join(application_path, 'R-PMingLiU-TW-2.ttf')
         # self.fontStyle = ImageFont.truetype(self.font_path, 20)
         self.pose_estimater = pose_estimater
         self.pose_analyzer = pose_analyzer
         self.angle_name = angle_name
         self.show_grid = False
-        self.show_bbox = False
+        self._show_bbox = False
         self.show_skeleton = False
         self.show_traj = False
         self.show_countdown = False
@@ -70,8 +72,8 @@ class ImageDrawer():
         if self.show_traj:
             image = self.drawTraj(image, kpt_buffer)
 
-        if self.show_angle_info:
-            image = self.drawAngleInfo(image, frame_num)
+        # if self.show_angle_info:
+        #     image = self.drawAngleInfo(image, frame_num)
         
         return image
 
@@ -102,8 +104,8 @@ class ImageDrawer():
 
         return image
 
-    def drawBbox(self, image:np.ndarray, person_df:pd.DataFrame):
-        if person_df.empty:
+    def drawBbox(self, image:np.ndarray, person_df:pl.DataFrame):
+        if person_df.is_empty():
             return image
         track_ids = person_df['track_id']
         person_bbox = person_df['bbox']
@@ -131,6 +133,8 @@ class ImageDrawer():
     def drawAngleInfo(self, img: np.ndarray, frame_num: int) -> np.ndarray:
         # 从 pose_analyzer 获取角度数据
         _, angle_info = self.pose_analyzer.get_frame_angle_data(frame_num, self.angle_name)
+        print(angle_info)
+        exit()
         if (len(angle_info) == 0):
             return img
         # 提取角度值，并将其转换为整数
@@ -167,7 +171,6 @@ class ImageDrawer():
             self.show_countdown = False
 
         return img
-
 
     def drawPoints(self, image, points, track_idx, color_palette='gist_rainbow', palette_samples=10, confidence_threshold=0.3):
         """
@@ -294,7 +297,7 @@ class ImageDrawer():
         """
         if person_df is None:
             return image
-        if person_df.empty:
+        if person_df.is_empty():
             return image
         person_data = self.df_to_points(person_df)
         for track_id, points in person_data.items(): 
@@ -312,9 +315,17 @@ class ImageDrawer():
 
     def swapValues(self, kpts):
         return [[item[1], item[0], item[2]] for item in kpts]
-
-    def setShowBbox(self, status:bool):
-        self.show_bbox = status
+    
+    @property
+    def show_bbox(self):
+        """獲取當前顯示bbox的狀態"""
+        return self._show_bbox
+    
+    @show_bbox.setter
+    def show_bbox(self, status:bool):
+        if status != self._show_bbox:
+            self._show_bbox = status
+            self.logger.info(f"當前顯示bbox的狀態: {self._show_bbox}")
     
     def setShowSkeleton(self, status:bool):
         self.show_skeleton = status
@@ -336,12 +347,12 @@ class ImageDrawer():
     def setShowCountdown(self,status:bool):
         self.show_countdown = status
         
-    def setAngleInfoPos(self):
-        person_df = self.pose_estimater.get_person_df(is_select=True)
-        if person_df is None:
-            return
-        self.angle_info_pos = person_df.iloc[0]['keypoints'][19]
-        self.angle_info_pos = tuple(map(int,self.angle_info_pos))
+    # def setAngleInfoPos(self):
+    #     person_df = self.pose_estimater.get_person_df(is_select=True)
+    #     if person_df is None:
+    #         return
+    #     self.angle_info_pos = person_df.iloc[0]['keypoints'][19]
+    #     self.angle_info_pos = tuple(map(int,self.angle_info_pos))
 
     def reset(self):
         self.show_grid = False

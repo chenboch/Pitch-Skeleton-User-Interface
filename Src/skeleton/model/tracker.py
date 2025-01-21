@@ -1,6 +1,7 @@
 import sys
 import os
 from argparse import ArgumentParser
+import numpy as np
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(current_dir, "../..", "tracker"))
 from tracker import BoTSORT
@@ -10,6 +11,14 @@ class Tracker(object):
         self.tracker_args = self.setTrackerParser()
         self.tracker = BoTSORT(self.tracker_args, frame_rate=30.0)
     
+
+    def process_bbox(self, image: np.ndarray,bboxes):
+        # 將新偵測的邊界框更新到跟蹤器
+        online_targets = self.tracker.update(
+            np.hstack((bboxes, np.full((bboxes.shape[0], 2), [0.9, 0]))), image.copy()
+        )
+        return online_targets
+        
     def setTrackerParser(self) -> ArgumentParser:
         parser = ArgumentParser()
         # tracking args

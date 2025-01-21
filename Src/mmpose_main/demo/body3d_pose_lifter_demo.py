@@ -298,7 +298,7 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
         causal=pose_lift_dataset.get('causal', False),
         seq_len=pose_lift_dataset.get('seq_len', 1),
         step=pose_lift_dataset.get('seq_step', 1))
-
+    
     # conduct 2D-to-3D pose lifting
     norm_pose_2d = not args.disable_norm_pose_2d
     pose_lift_results = inference_pose_lifter_model(
@@ -306,7 +306,8 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
         pose_seq_2d,
         image_size=visualize_frame.shape[:2],
         norm_pose_2d=norm_pose_2d)
-
+    print(pose_lift_results)
+    print(len(pose_lift_results))
     # post-processing
     for idx, pose_lift_result in enumerate(pose_lift_results):
         pose_lift_result.track_id = pose_est_results[idx].get('track_id', 1e4)
@@ -337,7 +338,6 @@ def process_one_image(args, detector, frame, frame_idx, pose_estimator,
     pred_3d_data_samples = merge_data_samples(pose_lift_results)
     det_data_sample = merge_data_samples(pose_est_results)
     pred_3d_instances = pred_3d_data_samples.get('pred_instances', None)
-
     if args.num_instances < 0:
         args.num_instances = len(pose_lift_results)
 

@@ -13,24 +13,37 @@ class KeypointTable:
         self.label_kpt = False
         self.clearTableView()
 
-    def importDataToTable(self, frame_num:int):
+    def importDataToTable(self, frame_num: int):
+        """將關鍵點數據導入表格視圖"""
+        # 清空表格
         self.clearTableView()
+
+        # 獲取人物 ID
         person_id = self.pose_estimater.track_id
         if person_id is None:
             return
+
+        # 獲取指定幀數的數據
         person_data = self.pose_estimater.get_person_df(frame_num=frame_num, is_select=True)
-        if person_data.empty:
+        if person_data.is_empty():
             self.clearTableView()
             return
+
+        # 獲取關鍵點信息
         kpt_dict = halpe26_keypoint_info["keypoints"]
         num_keypoints = len(kpt_dict)
+
+        # 設置表格行數
         if self.kpt_table.rowCount() < num_keypoints:
             self.kpt_table.setRowCount(num_keypoints)
 
-        for kpt_idx, kpt in enumerate(person_data['keypoints'].iloc[0]): 
-            kptx, kpty, kpt_label = kpt[0], kpt[1], kpt[3]
-            kpt_name = kpt_dict[kpt_idx]
+        # 提取關鍵點數據並導入表格
+        keypoints_list = person_data["keypoints"].to_list()[0]
+        for kpt_idx, kpt in enumerate(keypoints_list):
+            kptx, kpty, kpt_label = kpt[0], kpt[1], kpt[3]  # 獲取 x, y, label
+            kpt_name = kpt_dict[kpt_idx]  # 對應的關鍵點名稱
             self.setTableItem(kpt_idx, kpt_name, kptx, kpty, kpt_label)
+
 
     def setTableItem(self, row: int, kpt_name: str, kptx: float, kpty: float, kpt_label: bool):
         """Set items in the table for the given row."""

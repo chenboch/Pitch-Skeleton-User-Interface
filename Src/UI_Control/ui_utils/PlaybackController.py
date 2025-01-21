@@ -14,10 +14,10 @@ class PlaybackController:
 
     def setup_connections(self):
         """Set up the connections for playback controls."""
-        self.ui.playBtn.clicked.connect(self.play_btn_clicked)
-        self.ui.backKeyBtn.clicked.connect(self.backKeyPressed)
-        self.ui.forwardKeyBtn.clicked.connect(self.forwardKeyPressed)
-        self.ui.frameSlider.valueChanged.connect(self.analyze_frame_callback)
+        self.ui.play_btn.clicked.connect(self.play_btn_clicked)
+        self.ui.back_key_btn.clicked.connect(self.backKeyPressed)
+        self.ui.forward_key_btn.clicked.connect(self.forwardKeyPressed)
+        self.ui.frame_slider.valueChanged.connect(self.analyze_frame_callback)
 
     def play_btn_clicked(self):
         """Handle play button click."""
@@ -29,32 +29,32 @@ class PlaybackController:
             return
         
         self.is_play = not self.is_play
-        self.ui.playBtn.setText("||" if self.is_play else "▶︎")
+        self.ui.play_btn.setText("||" if self.is_play else "▶︎")
         if self.is_play:
-            self.play_frame(self.ui.frameSlider.value())
+            self.play_frame(self.ui.frame_slider.value())
 
     def play_frame(self, start_num: int = 0):
         """Play frames starting from the given frame number."""
         for i in range(start_num, self.video_loader.total_frames):
             if not self.is_play:
                 break
-            self.ui.frameSlider.setValue(i)
+            self.ui.frame_slider.setValue(i)
             self.analyze_frame_callback(i)  # Call the frame analysis method
             
             # If we reach the end of the video, stop playing
             if i == self.video_loader.total_frames - 1:
                 self.is_play = False
-                self.ui.playBtn.setText("▶︎")
+                self.ui.play_btn.setText("▶︎")
                 break
             
             cv2.waitKey(15)  # Adjust the delay as necessary
 
     def backKeyPressed(self):
         """Handle back key button press."""
-        current_value = self.ui.frameSlider.value()
-        self.ui.frameSlider.setValue(max(current_value - 1, self.ui.frameSlider.minimum()))
+        current_value = self.ui.frame_slider.value()
+        self.ui.frame_slider.setValue(max(current_value - 1, self.ui.frame_slider.minimum()))
 
     def forwardKeyPressed(self):
         """Handle forward key button press."""
-        current_value = self.ui.frameSlider.value()
-        self.ui.frameSlider.setValue(min(current_value + 1, self.ui.frameSlider.maximum()))
+        current_value = self.ui.frame_slider.value()
+        self.ui.frame_slider.setValue(min(current_value + 1, self.ui.frame_slider.maximum()))

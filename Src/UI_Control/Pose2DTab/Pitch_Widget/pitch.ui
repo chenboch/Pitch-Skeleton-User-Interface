@@ -17,7 +17,7 @@
    <item>
     <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,3,1,0">
      <item>
-      <widget class="QLabel" name="ResolutionLabel">
+      <widget class="QLabel" name="resolution_label">
        <property name="maximumSize">
         <size>
          <width>16777215</width>
@@ -36,7 +36,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QGraphicsView" name="FrameView">
+      <widget class="QGraphicsView" name="frame_view">
        <property name="minimumSize">
         <size>
          <width>480</width>
@@ -46,12 +46,12 @@
       </widget>
      </item>
      <item>
-      <widget class="QGraphicsView" name="CurveView"/>
+      <widget class="QGraphicsView" name="curve_view"/>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
-        <widget class="QPushButton" name="backKeyBtn">
+        <widget class="QPushButton" name="back_key_btn">
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -70,7 +70,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="playBtn">
+        <widget class="QPushButton" name="play_btn">
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -105,7 +105,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="forwardKeyBtn">
+        <widget class="QPushButton" name="forward_key_btn">
          <property name="minimumSize">
           <size>
            <width>50</width>
@@ -124,7 +124,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QSlider" name="frameSlider">
+        <widget class="QSlider" name="frame_slider">
          <property name="minimumSize">
           <size>
            <width>300</width>
@@ -137,7 +137,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="frameNumLabel">
+        <widget class="QLabel" name="frame_num_label">
          <property name="minimumSize">
           <size>
            <width>20</width>
@@ -264,7 +264,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QLabel" name="FPSInfoLabel">
+                <widget class="QLabel" name="fps_info_label">
                  <property name="minimumSize">
                   <size>
                    <width>130</width>
@@ -291,7 +291,7 @@
             </property>
             <layout class="QGridLayout" name="gridLayout_2">
              <item row="1" column="0">
-              <widget class="QCheckBox" name="showSkeletonCheckBox">
+              <widget class="QCheckBox" name="show_skeleton_checkbox">
                <property name="text">
                 <string>人體骨架</string>
                </property>
@@ -301,7 +301,7 @@
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QCheckBox" name="showBboxCheckBox">
+              <widget class="QCheckBox" name="show_bbox_checkbox">
                <property name="text">
                 <string>人物框</string>
                </property>
@@ -314,21 +314,21 @@
               </widget>
              </item>
              <item row="3" column="0">
-              <widget class="QCheckBox" name="selectKptCheckBox">
+              <widget class="QCheckBox" name="select_kpt_checkbox">
                <property name="text">
                 <string>選擇關節點</string>
                </property>
               </widget>
              </item>
              <item row="3" column="1">
-              <widget class="QCheckBox" name="showAngleCheckBox">
+              <widget class="QCheckBox" name="show_angle_checkbox">
                <property name="text">
                 <string>顯示角度</string>
                </property>
               </widget>
              </item>
              <item row="2" column="1">
-              <widget class="QCheckBox" name="selectCheckBox">
+              <widget class="QCheckBox" name="select_checkbox">
                <property name="text">
                 <string>選擇人</string>
                </property>
@@ -401,7 +401,7 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <item>
-           <widget class="QTableWidget" name="KptTable">
+           <widget class="QTableWidget" name="kpt_table">
             <property name="minimumSize">
              <size>
               <width>400</width>

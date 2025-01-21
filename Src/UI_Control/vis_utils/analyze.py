@@ -1,34 +1,39 @@
 import numpy as np
-import pandas as pd
+import polars as pl
 from skeleton.datasets.halpe26 import halpe26_keypoint_info
 
 class PoseAnalyzer:
     def __init__(self, pose_estimater):
         self.pose_estimater = pose_estimater
         self.angle_dict = halpe26_keypoint_info['angle_dict']
-        self.analyze_info = []
-        self.analyze_df = pd.DataFrame()
+        self.analyze_df = pl.DataFrame()
         self.processed_frames = set()
 
     def addAnalyzeInfo(self, frame_num: int):
         """Analyze information for each frame up to the current frame."""
         if self.pose_estimater.track_id is None:
-            return pd.DataFrame()
+            return pl.DataFrame()
         
         person_kpt = self.pose_estimater.get_person_df(frame_num= frame_num, is_select= True,is_kpt=True)
         
         if person_kpt is None:
             return
-        info = {
-            'frame_number': frame_num,
-            'angle': self._update_analyze_information(person_kpt)
-        }
-        # print(info)
+        
+        # new_analyze_data = []
+       # 計算角度信息
+        angle_info = self._update_analyze_information(person_kpt)
+
+        # 展平字典，並添加 frame_number 信息
+        new_analyze_data = {**{"frame_number": frame_num}, **angle_info}
+        new_analyze_df = pl.DataFrame(new_analyze_data)
         if frame_num not in self.processed_frames:
             self.processed_frames.add(frame_num)
-            self.analyze_info.append(info)
-            self.analyze_df = pd.DataFrame(self.analyze_info)
-            self.analyze_df = self.analyze_df.sort_values(by='frame_number').reset_index(drop=True)
+        if new_analyze_df.height > 0:
+            if self.analyze_df is None:  # 檢查是否已有分析數據
+                self.analyze_df = new_analyze_df
+            else:
+                self.analyze_df = pl.concat([self.analyze_df, new_analyze_df])
+        self.analyze_df = self.analyze_df.sort("frame_number")
 
     def _calculate_angle(self, A, B, C):
         """Calculate the angle between three points A, B, and C."""
@@ -39,7 +44,7 @@ class PoseAnalyzer:
         magnitude_BC = np.linalg.norm(BC)
         cos_angle = dot_product / (magnitude_BA * magnitude_BC)
         angle_rad = np.arccos(np.clip(cos_angle, -1.0, 1.0))
-        return np.degrees(angle_rad)
+        return int(np.degrees(angle_rad))
 
     def _update_analyze_information(self, person_kpt):
         """Update and return analyze information for the given keypoints."""
@@ -48,40 +53,48 @@ class PoseAnalyzer:
             A = person_kpt[kpt_list[0]][:2]
             B = person_kpt[kpt_list[1]][:2]
             C = person_kpt[kpt_list[2]][:2]
-            info[angle_name] = [self._calculate_angle(A, B, C), [np.array(A), np.array(B), np.array(C)]]
+            info[angle_name] = self._calculate_angle(A, B, C)
         return info
 
-    def get_frame_angle_data(self, frame_num: int = None, angle_name: str = None):
-        if self.analyze_df.empty:
-            return pd.DataFrame(), []
-        condition = pd.Series([True] * len(self.analyze_df))
+    def get_frame_angle_data(self, frame_num: int = None, angle_name: str = None):   
+        """
+        獲取指定幀數和角度名稱的數據。
+        :param frame_num: 指定幀數（可選）。
+        :param angle_name: 指定角度名稱（可選）。
+        :return: Tuple(pl.DataFrame, List[float] or float)
+        """
+        if self.analyze_df.is_empty():
+            return pl.DataFrame(), []
 
-        # 根據 frame_num 過濾數據
+        # 構建條件過濾
+        condition = pl.Series([True] * len(self.analyze_df))
         if frame_num is not None:
-            condition &= (self.analyze_df['frame_number'] == frame_num)
+            condition &= self.analyze_df["frame_number"] == frame_num
 
-        data = self.analyze_df.loc[condition]
-        
+        # 過濾數據
+        data = self.analyze_df.filter(condition)
+
         # 如果數據為空則返回
-        if data.empty:
-            return None, []
+        if data.is_empty():
+            return pl.DataFrame(), []
 
+        # 如果指定了角度名稱
         if angle_name is not None:
-            # 如果指定了 angle_name 且有特定幀數，返回該幀的角度數據
             if frame_num is not None:
-                angle_value = data['angle'].iloc[0][angle_name]
+                # 提取單個幀數的角度數據
+                angle_value = data.select(angle_name).to_series()[0]
                 return data, angle_value
             else:
-                # 如果未指定 frame_num，則返回該 angle_name 的所有幀數及對應角度
-                frame_numbers = self.analyze_df['frame_number'].unique()
-                angles = [row['angle'][angle_name][0] for _, row in self.analyze_df.iterrows() if angle_name in row['angle']]
+                # 提取所有幀數的指定角度數據
+                frame_numbers = data["frame_number"].to_list()
+                angles = data.select(angle_name).to_series().to_list()
                 return frame_numbers, angles
-        
+
+        # 如果未指定角度名稱，返回整個過濾後的數據
         return data, []
 
     def reset(self):
-        self.analyze_info = []
-        self.analyze_df = pd.DataFrame()
+        self.analyze_df = pl.DataFrame()
         self.processed_frames = set()
 
 class JointAreaChecker:
