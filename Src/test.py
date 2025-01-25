@@ -1,51 +1,56 @@
-import polars as pl
+import torch
+from mmengine.structures import InstanceData
+from mmpose.structures import PoseDataSample
 
-# 建立範例 DataFrame
-df = pl.DataFrame({
-    "track_id": [1, 1, 1, 1, 1],
-    "bbox": [
-        [410.754137, 204.889498, 1000.0],
-        [409.68621, 204.371573, 1007.0],
-        [408.319632, 203.939368, 1006.0],
-        [406.528031, 203.582769, 1008.0],
-        [404.998253, 203.296911, 1005.0]
+# 模擬多個人物的輸入資料 (N = 2)
+data = {
+    'bboxes': [
+        torch.tensor([471.0948, 198.7763, 762.6507, 1011.1557]),  # 第一個人物
+        torch.tensor([300.0, 150.0, 600.0, 900.0])  # 第二個人物
     ],
-    "area": [693307.13, 692634.65, 692057.1, 691308.36, 690879.34],
-    "keypoints": [
-        [[594.708618, 285.554138, 0.9], [111.0, 222.0, 0.8]],
-        [[594.413269, 285.409882, 0.8],  [111.0, 222.0, 0.8]],
-        [[591.90741, 285.17041, 0.8]],
-        [[589.502747, 285.182312, 0.8]],
-        None
-    ],
-    "frame_number": [47, 48, 49, 50, 51]
-})
+    'keypoints': [[
+        torch.tensor([[644., 281.], [615., 332.], [619., 222.], [619., 222.], [619., 222.],
+                      [697., 360.], [530., 361.], [736., 474.], [516., 477.], [665., 510.],
+                      [551., 512.], [672., 582.], [572., 577.], [667., 782.], [578., 767.],
+                      [669., 930.], [547., 932.]])
+    ], [
+        torch.tensor([[500., 250.], [480., 300.], [470., 200.], [470., 200.], [470., 200.],
+                      [530., 330.], [420., 340.], [550., 450.], [410., 460.], [500., 500.],
+                      [450., 510.], [520., 570.], [470., 560.], [510., 750.], [460., 730.],
+                      [530., 900.], [470., 890.]])
+    ]],
+    'keypoint_scores': [[
+        torch.tensor([0.9349, 0.9285, 0.9039, 0.9039, 0.9039, 0.901, 0.8969, 0.9032, 0.8897,
+                      0.901, 0.8785, 0.8725, 0.8742, 0.8848, 0.8945, 0.893, 0.8941])
+    ], [
+        torch.tensor([0.9102, 0.9055, 0.8901, 0.8901, 0.8901, 0.8888, 0.8700, 0.8899, 0.8655,
+                      0.8750, 0.8600, 0.8500, 0.8602, 0.8703, 0.8801, 0.8800, 0.8810])
+    ]]
+}
 
-# 修改 frame_number = 50 的 keypoints
-smoothed_kpts = [[400.90741, 285.17041, 0.8],[400.90741, 285.17041, 0.8]]
+# 轉換格式
+pose_sample = PoseDataSample()
 
-search_person_df = df.filter(
-           (pl.col("frame_number") == 48) & 
-                (pl.col("track_id") == 1)
-    )
-search_person_df =search_person_df["keypoints"].to_list()[0]
-search_person_df[0] = [0,1] + search_person_df[0][2:]
+# 設定 metainfo，存儲所有 bbox
+pose_sample.set_metainfo({'bboxes': torch.stack(data['bboxes'])})  # (N, 4)
 
-print(search_person_df)
-search_person_df[0] = 2 # 修改對應位置的值
-search_person_df[1] = 3
-print(search_person_df)
-# search_person_df["keypoints"][0][0][0] = 1
-# print(search_person_df["keypoints"][0][0])
-new_person_df = df.with_columns(
-        pl.when(
-                (pl.col("frame_number") == 50) & 
-                (pl.col("track_id") == 1)
-            )
-        .then(pl.Series("keypoints", [smoothed_kpts]))
-        .otherwise(df["keypoints"])
-        .alias("keypoints")
-)
+# 使用 InstanceData 來封裝 keypoints 和 scores
+pred_instances = InstanceData()
+pred_instances.keypoints = torch.stack([k[0] for k in data['keypoints']])  # (N, K, 2)
+pred_instances.keypoint_scores = torch.stack([s[0] for s in data['keypoint_scores']])  # (N, K)
 
+# 設定 pred_instances
+pose_sample.pred_instances = pred_instances
 
-# print(new_person_df)
+import numpy as np
+for person in pred_instances:
+    print(person['keypoints'])
+    # exit()
+    keypoints_data = np.hstack((
+        np.round(person['keypoints'][0], 2),
+        np.round(person['keypoint_scores'][0], 2).reshape(-1, 1),
+        np.full((len(person['keypoints'][0]), 1), False, dtype=bool)
+    ))
+
+# 顯示結果
+print(pose_sample)

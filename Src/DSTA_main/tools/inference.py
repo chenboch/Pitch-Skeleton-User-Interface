@@ -3,9 +3,8 @@
 
 import os
 import sys
-
-sys.path.insert(0, os.path.abspath('../'))
-
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(current_dir, ".."))
 import argparse
 import cv2
 import numpy as np
@@ -17,7 +16,6 @@ from datasets.process import get_final_preds, get_final_preds_coor
 from posetimation.zoo import build_model
 from posetimation.config import get_cfg, update_config
 from DSTA_main.utils.utils_bbox import box2cs
-from DSTA_main.utils.utils_image import read_image, save_image
 from DSTA_main.utils.common import INFERENCE_PHASE
 
 # Please make sure that root dir is the root directory of the project
@@ -75,7 +73,7 @@ def image_preprocess(image_data: np.ndarray, center, scale):
     # img_folder = os.path.join("../../Db/Data/images")
     # os.makedirs(img_folder, exist_ok=True)
     # img_path =  os.path.join(img_folder, f"{0:08d}.jpg" )
-    # # cv2.imwrite(img_path, image_data)    
+    # # cv2.imwrite(img_path, image_data)
     # cv2.imshow('Crop Image', image_data)
     # cv2.imwrite
     image_data = image_transforms(image_data)
@@ -91,7 +89,7 @@ def inference_PE(input_image: str, prev_image: str, next_image: str, bbox):
         inference pose estimation
     """
 
-    
+
     center, scale = box2cs(bbox, aspect_ratio)
     target_image_data, prev_image_data, next_image_data = image_preprocess(input_image, prev_image, next_image, center, scale)
 
@@ -110,16 +108,15 @@ def inference_PE(input_image: str, prev_image: str, next_image: str, bbox):
 
     return pred_keypoints
 
-def inference_topdown(model, image_list: np.ndarray, person_data):
+def inference_topdown(model, image_list: np.ndarray, person_data)-> np.ndarray:
     """
         image_list : [pprev_image, prev_image, cur_image]
         person_data = {'track_id' : [pprev_bbox, prev_bbox, cur_bbox]}
         inference pose estimation
     """
-    
+
     batch_size = len(person_data)  # Total number of track_ids
     concat_input_list = []
-    margin_list = []
     centers = []
     scales = []
     # For each track_id, process the bounding boxes and images
@@ -128,30 +125,24 @@ def inference_topdown(model, image_list: np.ndarray, person_data):
         pprev_idx = min(0, len(image_list) -1)
         prev_idx = min(1, len(image_list) - 1)
         cur_idx = min(2, len(image_list) - 1)
-        
+
         center, scale = box2cs(bbox, aspect_ratio)
         centers.append(center)
         scales.append(scale)
-        
+
         pprev_image_data  = image_preprocess(image_list[pprev_idx], center, scale)
         prev_image_data   = image_preprocess(image_list[prev_idx], center, scale)
         target_image_data = image_preprocess(image_list[cur_idx], center, scale)
-        
+
         # Add the preprocessed images to the list
         pprev_image_data = pprev_image_data.unsqueeze(0)
         prev_image_data = prev_image_data.unsqueeze(0)
         target_image_data = target_image_data.unsqueeze(0)
-        # torch.cat(concat_input_list, 1).cuda()
         concat_input = torch.cat((pprev_image_data, prev_image_data, target_image_data), 1).cuda()
         concat_input_list.append(concat_input)
-        # concat_input_list.append(prev_image_data.unsqueeze(0))
-        # concat_input_list.append(target_image_data.unsqueeze(0))
-        # margin_list.append(torch.stack([torch.tensor(1).unsqueeze(0), torch.tensor(1).unsqueeze(0)], dim=1).cuda())
 
     # Convert lists to tensors
     concat_input = torch.cat(concat_input_list, 0).cuda()  # Concatenate images along batch axis
-    # print(concat_input)
-    # exit()
     # Set model to evaluation mode
     model.eval()
 
@@ -160,18 +151,15 @@ def inference_topdown(model, image_list: np.ndarray, person_data):
     # print(predictions.shape)
     pred_coor = predictions.pred_jts.detach().cpu().numpy()
     score_coor = predictions.maxvals.detach().cpu().numpy()
-    
+
     pred_coor = pred_coor * [3, 4]
     pred_joint, pred_conf = get_final_preds_coor(pred_coor, score_coor, centers, scales, h=4,w=3)
 
     pred_keypoints_list = np.concatenate([pred_joint.astype(int), pred_conf], axis=2)
     pred_instances = []
-    for track_id in range(len(person_data)):
+    for track_id, _ in enumerate(person_data):
         pred_instances.append([person_data[track_id],pred_keypoints_list[track_id]])
-        # pred_keypoints_list.append(pred_keypoints)
-    # print(pred_keypoints_list)
-    # Return the list of predicted keypoints for all track_ids
-    return pred_instances
+    return np.array(pred_instances)
 
 
 

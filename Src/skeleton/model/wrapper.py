@@ -1,6 +1,6 @@
 """Wrapper 模組
 
-這個模組提供一個 Wrapper 類別，將 Detector、Tracker、Pose2DEstimator 
+這個模組提供一個 Wrapper 類別，將 Detector、Tracker、Pose2DEstimator
 和 Pose3DEstimator 統一封裝在一個介面中。
 """
 
@@ -15,7 +15,7 @@ class Wrapper:
 
     提供統一的介面來初始化和訪問這些元件。
     """
-    
+
     def __init__(self):
         """初始化 Wrapper 類別，建立 Detector、Tracker 等實例。"""
         self._detector = Detector()

@@ -51,7 +51,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         # 在此執行你想要的操作
         if self.video_loader.video_name is not None:
             self.update_frame(self.ui.frame_slider.value())
-        super().resize_event(event)  
+        super().resize_event(event)
 
     def init_frame_slider(self):
         """初始化影片滑桿和相關的標籤。"""
@@ -64,7 +64,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
     def init_graph(self):
         """初始化圖表和模型設定。"""
         total_frames = self.video_loader.total_frames
-        self.graph_plotter._init_graph(total_frames) 
+        self.graph_plotter._init_graph(total_frames)
         self.show_graph(self.curve_scene, self.ui.curve_view)
 
     def play_btn_clicked(self):
@@ -97,7 +97,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
                 except IndexError:
                     self.logger.info("請重新選人")
                     self.ui.select_checkbox.setCheckState(0)
-        
+
         if self.ui.select_kpt_checkbox.isChecked() and not self.kpt_table.label_kpt :
             if event.button() == Qt.LeftButton:
                 self.kpt_selector.select(search_person_df, x, y)
@@ -111,7 +111,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         if self.video_loader.video_name is not None:
             self.update_frame(frame_num=self.ui.frame_slider.value())
 
-    def setup_components(self): 
+    def setup_components(self):
         self.setup_pose_estimater()  # 由子類別提供具體的 pose_estimater
         self.person_selector = PersonSelector()
         self.kpt_selector = KptSelector()
@@ -129,7 +129,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         self.image_drawer.reset()
         self.view_scene.clear()
         self.curve_scene.clear()
-   
+
     def load_video(self,is_processed:bool = False):
         if self.is_play:
             self.ui.play_btn.click()
@@ -169,13 +169,13 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         if self.is_processed:
             self.load_processed_data()
 
-    def show_image(self, image: np.ndarray, scene: QGraphicsScene, GraphicsView: QGraphicsView): 
+    def show_image(self, image: np.ndarray, scene: QGraphicsScene, GraphicsView: QGraphicsView):
         scene.clear()
         image = image.copy()
         image = cv2.circle(image, (0, 0), 10, (0, 0, 255), -1)
         w, h = image.shape[1], image.shape[0]
         bytesPerline = 3 * w
-        qImg = QImage(image, w, h, bytesPerline, QImage.Format_RGB888).rgbSwapped()   
+        qImg = QImage(image, w, h, bytesPerline, QImage.Format_RGB888).rgbSwapped()
         pixmap = QPixmap.fromImage(qImg)
         scene.addPixmap(pixmap)
         GraphicsView.setScene(scene)
@@ -189,7 +189,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         scene.addWidget(graph)
         graphicview.setScene(scene)
         graphicview.fitInView(scene.sceneRect(), Qt.KeepAspectRatio)
-   
+
     def play_frame(self, start_num:int=0):
         for i in range(start_num, self.video_loader.total_frames):
             if not self.is_play:
@@ -214,13 +214,13 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         if frame_num == self.video_loader.total_frames - 1:
             self.video_loader.save_video()
         self.update_frame(frame_num)
-                
+
     def update_frame(self, frame_num:int):
         image = self.video_loader.get_video_image(frame_num)
         drawed_img = self.image_drawer.drawInfo(image, frame_num, self.pose_estimater.kpt_buffer)
         self.show_image(drawed_img, self.view_scene, self.ui.frame_view)
         self.graph_plotter.resize_graph(self.ui.curve_view.width(),self.ui.curve_view.height())
-    
+
     def toggle_detect(self):
         self.ui.show_skeleton_checkbox.setChecked(True)
         frame = self.video_loader.get_video_image(0)
@@ -232,7 +232,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
             self.ui.select_checkbox.setCheckState(0)
             self.logger.warning("無法選擇人，請選擇顯示人體骨架!")
             return
-        # if state == 2: 
+        # if state == 2:
         #     self.person_selector.select(search_person_df=self.pose_estimater.get_person_df(frame_num=self.ui.frame_slider.value()))
         #     self.pose_estimater.track_id = self.person_selector.selected_id
         if state == 0:
@@ -246,7 +246,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
             self.ui.select_kpt_checkbox.setCheckState(0)
             self.logger.warning("無法選擇關節點， 請先選擇人!")
             return
-        if state == 2:  
+        if state == 2:
             self.pose_estimater.joint_id = 10
             self.image_drawer.setShowTraj(True)
         else:
@@ -263,7 +263,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         self.update_frame(self.ui.frame_slider.value())
 
     def toggle_show_bbox(self, state:int):
-        if state == 2:  
+        if state == 2:
             self.image_drawer.show_bbox = True
         else:
             self.image_drawer.show_bbox = False
@@ -273,11 +273,11 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
             self.ui.show_angle_checkbox.setCheckState(0)
             QMessageBox.warning(self, "無法顯示關節點角度資訊", "請選擇人!")
             return
-        if state == 2:  
-            self.image_drawer.setShowAngleInfo(True)
+        if state == 2:
+            self.image_drawer.set_show_angle_info(True)
         else:
-            self.image_drawer.setShowAngleInfo(False)
- 
+            self.image_drawer.set_show_angle_info(False)
+
     def correctId(self):
         before_correctId = self.ui.beforeCorrectId.value()
         after_correctId = self.ui.afterCorrectId.value()

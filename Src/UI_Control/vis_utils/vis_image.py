@@ -7,7 +7,7 @@ from .analyze import PoseAnalyzer
 import os
 from scipy.signal import savgol_filter
 # from utils.timer import Timer
-from skeleton.datasets import halpe26_keypoint_info
+from skeleton.datasets import halpe26_keypoint_info, posetrack_keypoint_info
 import sys
 import time
 import logging
@@ -44,7 +44,7 @@ class ImageDrawer():
         self.region = [(100, 250), (450, 600)]
 
         # self.timer = None
-    
+
     def drawInfo(self, img:np.ndarray, frame_num:int=None, kpt_buffer:list = None, countdown_time:int = None):
         if img is None:
             return
@@ -52,7 +52,7 @@ class ImageDrawer():
         curr_person_df = self.pose_estimater.get_person_df(frame_num = frame_num, is_select=True)
         if curr_person_df is None:
             return image
-        
+
         if countdown_time is not None:
             self.show_countdown = True
 
@@ -61,20 +61,24 @@ class ImageDrawer():
 
         if self.show_grid :
             image = self.drawGrid(image)
-        
+
         if self.show_bbox:
             image = self.drawBbox(image, curr_person_df)
-        
+
         if self.show_skeleton:
-            image = self.draw_points_and_skeleton(image, curr_person_df, halpe26_keypoint_info['skeleton_links'], 
-                                                points_palette_samples=10)
-        
+            if self.pose_estimater.model_name == "vit-pose":
+                image = self.draw_points_and_skeleton(image, curr_person_df, halpe26_keypoint_info['skeleton_links'],
+                                                    points_palette_samples=10)
+            else:
+                image = self.draw_points_and_skeleton(image, curr_person_df, posetrack_keypoint_info['skeleton_links'],
+                                                    points_palette_samples=10)
+
         if self.show_traj:
             image = self.drawTraj(image, kpt_buffer)
 
         # if self.show_angle_info:
         #     image = self.drawAngleInfo(image, frame_num)
-        
+
         return image
 
     def drawCross(self, image, x, y, length=5, color=(0, 0, 255), thickness=2):
@@ -83,7 +87,7 @@ class ImageDrawer():
 
     def drawGrid(self, image:np.ndarray):
         #return image:np.ndarray
-        
+
         height, width = image.shape[:2]
         self.drawCross(image,int(width/2),int(height/2),length=20,color=(0,0,255),thickness = 3)
         # 計算垂直線的位置
@@ -123,7 +127,7 @@ class ImageDrawer():
 
         # 將座標轉換為整數
         int_kpt_buffer = [tuple(map(int, kpt)) for kpt in kpt_buffer]
-        
+
         # 迭代相鄰的兩個點，並畫出軌跡線
         for (f_kptx, f_kpty), (s_kptx, s_kpty) in zip(int_kpt_buffer[:-1], int_kpt_buffer[1:]):
             cv2.line(img, (f_kptx, f_kpty), (s_kptx, s_kpty), (0, 255, 0), 5)
@@ -139,22 +143,22 @@ class ImageDrawer():
             return img
         # 提取角度值，并将其转换为整数
         angle_value = int(angle_info[0])
-        
+
         # 提取坐标并将其转换为整数元组
         p = tuple(map(int, angle_info[1][1]))
         # 使用 cv2.line 绘制线条
         cv2.line(img, p, (self.angle_info_pos[0] + 20, self.angle_info_pos[1] + 320), (0, 0, 0), 2)
-        
+
         # 使用 cv2.putText 绘制角度值
-        img = cv2.putText(img, str(angle_value), (self.angle_info_pos[0] - 50, self.angle_info_pos[1] + 420), 
+        img = cv2.putText(img, str(angle_value), (self.angle_info_pos[0] - 50, self.angle_info_pos[1] + 420),
                         cv2.FONT_HERSHEY_COMPLEX, 3.5, (0, 255, 0), 3)
-        
+
         return img
 
     def drawCountdown(self, img:np.ndarray,countdown_time:int):
         height, width, _ = img.shape
-        text = str(countdown_time) 
-        
+        text = str(countdown_time)
+
         # 設置文字的大小、顏色與位置
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 20
@@ -204,7 +208,7 @@ class ImageDrawer():
         circle_size = max(1, min(image.shape[:2]) // 160)  # ToDo Shape it taking into account the size of the detection
         # circle_size = max(2, int(np.sqrt(np.max(np.max(points, axis=0) - np.min(points, axis=0)) // 16)))
         for i, pt in enumerate(points):
-        
+
             unlabel = False if pt[0] != 0 and pt[1] != 0 else True
             if pt[2] > confidence_threshold and not unlabel:
                 image = cv2.circle(image, (int(pt[1]), int(pt[0])), circle_size, tuple(colors[track_idx % len(colors)]), -1)
@@ -245,9 +249,14 @@ class ImageDrawer():
             colors = np.round(
                 np.array(plt.get_cmap(color_palette)(np.linspace(0, 1, palette_samples))) * 255
             ).astype(np.uint8)[:, -2::-1].tolist()
-        right_skeleton = halpe26_keypoint_info['right_points_indices']
-        left_skeleton = halpe26_keypoint_info['left_points_indices']
-        
+
+        if self.pose_estimater.model_name == "vit-pose":
+            right_skeleton = halpe26_keypoint_info['right_points_indices']
+            left_skeleton = halpe26_keypoint_info['left_points_indices']
+        else:
+            right_skeleton = posetrack_keypoint_info['right_points_indices']
+            left_skeleton = posetrack_keypoint_info['left_points_indices']
+
         for i, joint in enumerate(skeleton):
             pt1, pt2 = points[joint]
             pt1_unlabel = False if pt1[0] != 0 and pt1[1] != 0 else True
@@ -300,7 +309,7 @@ class ImageDrawer():
         if person_df.is_empty():
             return image
         person_data = self.df_to_points(person_df)
-        for track_id, points in person_data.items(): 
+        for track_id, points in person_data.items():
             image = self.drawSkeleton(image, points, skeleton,person_index=track_id)
             image = self.drawPoints(image, points,track_idx=track_id)
         return image
@@ -315,44 +324,44 @@ class ImageDrawer():
 
     def swapValues(self, kpts):
         return [[item[1], item[0], item[2]] for item in kpts]
-    
+
     @property
     def show_bbox(self):
         """獲取當前顯示bbox的狀態"""
         return self._show_bbox
-    
+
     @show_bbox.setter
     def show_bbox(self, status:bool):
         if status != self._show_bbox:
             self._show_bbox = status
             self.logger.info(f"當前顯示bbox的狀態: {self._show_bbox}")
-    
+
     def setShowSkeleton(self, status:bool):
         self.show_skeleton = status
-    
+
     def setShowGrid(self, status:bool):
         self.show_grid = status
-        
+
     def setShowRegion(self, status:bool):
         self.show_region = status
 
     def setShowTraj(self, status:bool):
         self.show_traj = status
 
-    def setShowAngleInfo(self, status:bool):
+    def set_show_angle_info(self, status:bool):
         self.show_angle_info = status
         if status:
             self.setAngleInfoPos()
-    
+
     def setShowCountdown(self,status:bool):
         self.show_countdown = status
-        
-    # def setAngleInfoPos(self):
-    #     person_df = self.pose_estimater.get_person_df(is_select=True)
-    #     if person_df is None:
-    #         return
-    #     self.angle_info_pos = person_df.iloc[0]['keypoints'][19]
-    #     self.angle_info_pos = tuple(map(int,self.angle_info_pos))
+
+    def setAngleInfoPos(self):
+        person_df = self.pose_estimater.get_person_df(is_select=True)
+        if person_df is None:
+            return
+        self.angle_info_pos = person_df.iloc[0]['keypoints'][19]
+        self.angle_info_pos = tuple(map(int,self.angle_info_pos))
 
     def reset(self):
         self.show_grid = False

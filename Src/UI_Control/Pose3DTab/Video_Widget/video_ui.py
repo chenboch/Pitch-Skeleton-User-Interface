@@ -251,7 +251,7 @@ class Ui_video_widget(object):
         self.horizontalLayout_5.addWidget(self.tab_widget)
 
         self.retranslateUi(video_widget)
-        self.tab_widget.setCurrentIndex(1)
+        self.tab_widget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(video_widget)
 
     def retranslateUi(self, video_widget):
