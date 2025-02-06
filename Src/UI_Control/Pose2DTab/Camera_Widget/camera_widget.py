@@ -20,7 +20,7 @@ class PoseCameraTabControl(QWidget):
         self.model = model
         self.init_var()
         self.init_pose_estimater()
-        self.bindUI()
+        self.bind_ui()
 
     def init_var(self):
         """Initialize variables and timer."""
@@ -36,7 +36,7 @@ class PoseCameraTabControl(QWidget):
         self.pose_estimater = CameraPose2DEstimater(self.model)
         self.image_drawer = ImageDrawer(self.pose_estimater)
 
-    def bindUI(self):
+    def bind_ui(self):
         """Bind UI elements to their corresponding functions."""
         self.ui.cameraCheckBox.stateChanged.connect(self.toggleCamera)
         self.ui.recordCheckBox.stateChanged.connect(self.toggleRecord)
@@ -96,13 +96,13 @@ class PoseCameraTabControl(QWidget):
         is_checked = state == 2
         self.pose_estimater.setKptId(10 if is_checked else None)
         self.pose_estimater.clear_keypoint_buffer()
-        self.image_drawer.setShowTraj(is_checked)
+        self.image_drawer.set_show_traj(is_checked)
 
     def toggle_show_skeleton(self, state:int):
         """Toggle skeleton detection and FPS control."""
         is_checked = state == 2
         self.pose_estimater.setDetect(is_checked)
-        self.image_drawer.setShowSkeleton(is_checked)
+        self.image_drawer.set_show_skeleton(is_checked)
         self.camera.setFPSControl(15 if is_checked else 1)
 
     def toggle_show_bbox(self, state:int):
@@ -111,7 +111,7 @@ class PoseCameraTabControl(QWidget):
 
     def toggleShowGrid(self, state:int):
         """Toggle gridline visibility."""
-        self.image_drawer.setShowGrid(state == 2)
+        self.image_drawer.set_show_grid(state == 2)
 
     def changeCamera(self):
         """Change the camera based on input value."""
@@ -145,7 +145,7 @@ class PoseCameraTabControl(QWidget):
         """Handle mouse events for person and keypoint selection."""
         if not self.ui.frame_view.rect().contains(event.pos()):
             return
-        
+
         scene_pos = self.ui.frame_view.mapToScene(event.pos())
         x, y = scene_pos.x(), scene_pos.y()
         search_person_df = self.pose_estimater.pre_person_df

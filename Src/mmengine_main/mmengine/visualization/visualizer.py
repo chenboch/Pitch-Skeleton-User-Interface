@@ -37,7 +37,7 @@ class Visualizer(ManagerMixin):
 
       - drawBboxes: draw single or multiple bounding boxes
       - draw_texts: draw single or multiple text boxes
-      - drawPoints: draw single or multiple points
+      - draw_points: draw single or multiple points
       - draw_lines: draw single or multiple line segments
       - draw_circles: draw single or multiple circles
       - draw_polygons: draw single or multiple polygons
@@ -383,7 +383,7 @@ class Visualizer(ManagerMixin):
         return flag
 
     @master_only
-    def drawPoints(self,
+    def draw_points(self,
                     positions: Union[np.ndarray, torch.Tensor],
                     colors: Union[str, tuple, List[str], List[tuple]] = 'g',
                     marker: Optional[str] = None,

@@ -15,12 +15,12 @@
     pip install cython_bbox
     ```
 3. setup openmim
-    ``` 
+    ```
     pip install -U openmim
     mim install mmcv-full
-    mim install "mmcv==2.0.1"
+    pip install mmcv==2.0.1 -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.html
     mim install "mmdet==3.1.0"
-    ``` 
+    ```
 5. Setup mmpose environment:
     ```
     cd Src\mmpose_main
@@ -48,7 +48,7 @@
     ```
 ### Data Preparation
 To obtain the vitpose、yolo and fast-reid wights, it can be downloaded from the https://drive.google.com/drive/folders/1D7Q5bTnTAfKkfLuppqUo4_8W4t0wrCmP?usp=sharing. The resulting data directory should look like this:
-    
+
     ${POSE_ROOT}
     |-- Db
     -- |-- pretrain
@@ -58,7 +58,7 @@ To obtain the vitpose、yolo and fast-reid wights, it can be downloaded from the
             |-- {video_name}.mp4 (原始影片)
             |-- {video_name}_Sk26.mp4 (將原始影片畫上骨架資訊)
             |-- {video_name}.json (將偵測出來的結果紀錄，裡面包含了人物的bounding box info. 和 26 個關節點位置)
-            
+
     |-- Src
 
 ### Demo
@@ -74,4 +74,4 @@ To obtain the vitpose、yolo and fast-reid wights, it can be downloaded from the
     ```
     利用影片進行骨架偵測
     ```
-    
+

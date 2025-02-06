@@ -7,7 +7,8 @@
 from .detector import Detector
 from .tracker import Tracker
 from .pose2d_estimator import Pose2DEstimator
-from .pose3d_estimator import Pose3DEstimator
+# from .pose3d_estimator import Pose3DEstimator
+from .pose3d_estimator_beta import Pose3DEstimator
 
 
 class Wrapper:
@@ -20,7 +21,7 @@ class Wrapper:
         """初始化 Wrapper 類別，建立 Detector、Tracker 等實例。"""
         self._detector = Detector()
         self._tracker = Tracker()
-        self._pose2d_estimator = Pose2DEstimator()
+        self._pose2d_estimator = Pose2DEstimator(model_name="vi-pose")
         self._pose3d_estimator = Pose3DEstimator()
 
     @property

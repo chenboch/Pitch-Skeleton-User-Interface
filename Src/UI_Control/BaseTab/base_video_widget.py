@@ -3,7 +3,6 @@ from PyQt5.QtGui import QColor, QImage, QPixmap, QFont
 from PyQt5.QtCore import Qt, QObject, QTimer
 from typing import Optional
 import numpy as np
-import sys
 import cv2
 from ..utils import *
 from ..cv_utils import *
@@ -248,16 +247,16 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
             return
         if state == 2:
             self.pose_estimater.joint_id = 10
-            self.image_drawer.setShowTraj(True)
+            self.image_drawer.set_show_traj(True)
         else:
             self.pose_estimater.joint_id = None
-            self.image_drawer.setShowTraj(False)
+            self.image_drawer.set_show_traj(False)
         self.update_frame(self.ui.frame_slider.value())
 
     def toggle_show_skeleton(self, state:int):
         is_checked = state == 2
         self.pose_estimater.is_detect = is_checked
-        self.image_drawer.setShowSkeleton(is_checked)
+        self.image_drawer.set_show_skeleton(is_checked)
         if state == 0:
             self.ui.select_checkbox.setCheckState(0)
         self.update_frame(self.ui.frame_slider.value())

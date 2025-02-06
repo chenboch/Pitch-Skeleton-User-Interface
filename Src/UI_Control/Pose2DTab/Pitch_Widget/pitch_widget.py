@@ -27,7 +27,7 @@ class PosePitchTabControl(QWidget):
         self.model = model
         self.setup_components()
         self.init_var()
-        self.bindUI()
+        self.bind_ui()
 
     def init_var(self):
         """Initialize variables and timer."""
@@ -70,7 +70,7 @@ class PosePitchTabControl(QWidget):
             self.update_frame(frame_num=self.ui.frame_slider.value())
         super().resize_event(event)
 
-    def bindUI(self):
+    def bind_ui(self):
         """Bind UI element to their corresponding functions."""
         self.ui.cameraIdInput.valueChanged.connect(self.changeCamera)
         self.ui.pitchInput.currentIndexChanged.connect(self.changePitcher)
@@ -233,12 +233,12 @@ class PosePitchTabControl(QWidget):
                 return
             self.kpt_selector = KptSelector()
             self.pose_estimater.setKptId(10)
-            self.image_drawer.setShowTraj(True)
+            self.image_drawer.set_show_traj(True)
         else:
             self.kpt_selector = None
             self.pose_estimater.setKptId(None)
             self.pose_estimater.clear_keypoint_buffer()
-            self.image_drawer.setShowTraj(False)
+            self.image_drawer.set_show_traj(False)
 
     def toggle_show_skeleton(self, state:int):
         """Toggle skeleton detection and FPS control."""
@@ -254,7 +254,7 @@ class PosePitchTabControl(QWidget):
             self.ui.select_checkbox.setCheckState(0)
 
         self.pose_estimater.setDetect(is_checked)
-        self.image_drawer.setShowSkeleton(is_checked)
+        self.image_drawer.set_show_skeleton(is_checked)
         if self.camera is not None and not self.is_video:
             self.camera.setFPSControl(15 if is_checked else 1)
 
@@ -274,7 +274,7 @@ class PosePitchTabControl(QWidget):
 
     def toggleShowGrid(self, state:int):
         """Toggle gridline visibility."""
-        self.image_drawer.setShowGrid(state == 2)
+        self.image_drawer.set_show_grid(state == 2)
 
     def changeCamera(self):
         """Change the camera based on input value."""

@@ -7,7 +7,7 @@ from enum import Enum
 from PyQt5.QtWidgets import QGraphicsScene
 from ..vis_utils.vis_image import ImageDrawer
 from .cv_thread import VideoCaptureThread, VideoWriterThread, VideoToImagesThread
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QFileDialog
 
 class Camera:
     def __init__(self, camera_idx:int = 0):
@@ -110,7 +110,7 @@ class VideoLoader:
         self.total_frames = None
         self.video_name = None
         self.is_loading = False
-    
+
     def load_video(self, video_path:str = None):
         options = QFileDialog.Options()
         if video_path is None:
@@ -131,31 +131,34 @@ class VideoLoader:
         self.video_frames = video_frames
         self.video_fps = fps
         self.video_size = (self.video_frames[0].shape[1], self.video_frames[0].shape[0])
-        
+
         self.close_thread(self.v_t)
 
     def close_thread(self, thread):
         thread.stop()
         self.is_loading = False
         thread = None
-    
+
     def get_video_image(self, frame_num:int) -> np.ndarray:
         return self.video_frames[frame_num].copy()
-    
+
     def save_video(self):
         # relative_path = os.path.relpath(self.folder_path, start="C:/Users/user/Desktop/Pitch-Skeleton-User-Interface/Db/Db_KCGM_Baseball")
         # 将空格替换为下划线
         # formatted_path = relative_path.replace(" ", "_")
- 
+
         # fm_path = formatted_path.replace("\\", "_")
         # formatted_path = formatted_path.replace("\\", "_")
         # print(formatted_path)
         formatted_path = ""
         fm_path = ""
-        output_folder = os.path.join("../Db/Record", formatted_path+"_"+self.video_name)
+        # output_folder = os.path.join("../Db/Record", formatted_path+"_"+self.video_name)
+        # ann_folder = os.path.join("../Db/Data/annotations/train")
+        # img_folder = os.path.join("../Db/Data/images", formatted_path+"_"+self.video_name)
+        output_folder = os.path.join("../Db/Record", self.video_name)
         ann_folder = os.path.join("../Db/Data/annotations/train")
-        img_folder = os.path.join("../Db/Data/images", formatted_path+"_"+self.video_name)
-       
+        img_folder = os.path.join("../Db/Data/images", self.video_name)
+
         os.makedirs(output_folder, exist_ok=True)
         os.makedirs(img_folder, exist_ok=True)
         os.makedirs(ann_folder,exist_ok=True)
@@ -174,7 +177,7 @@ class VideoLoader:
         # output_folder = os.path.join("../Db/Record", self.video_name)
         # ann_folder = os.path.join("../Db/Data/annotations/train")
         # img_folder = os.path.join("../Db/Data/images", self.video_name)
-       
+
         # os.makedirs(output_folder, exist_ok=True)
         # os.makedirs(img_folder, exist_ok=True)
         # os.makedirs(ann_folder,exist_ok=True)
@@ -195,11 +198,11 @@ class VideoLoader:
         if not video_writer.isOpened():
             print("Error while opening video writer!")
             return
-        
-        
+
+
         for frame_num, frame in enumerate(self.video_frames):
-            if frame_num % 2 == 0:
-                video_writer.write(frame)
+            # if frame_num % 2 == 0:
+            video_writer.write(frame)
 
         video_writer.release()
         # save_location = os.path.join(output_folder, f"{formatted_path}_{self.video_name}_Sk26.mp4")
@@ -238,6 +241,6 @@ class JsonLoader:
 
         if not os.path.exists(json_path):
             return
-        
+
         self.person_df = pl.read_json(json_path)
         print(self.person_df)

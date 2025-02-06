@@ -5,10 +5,10 @@ from skeleton.lib import FPSTimer
 import logging
 import queue
 from torch.profiler import profile, ProfilerActivity
-
+import polars as pl
 
 class PoseEstimater(object):
-    def __init__(self, wrapper: Wrapper =None, model_name: str = "vi-pose"):
+    def __init__(self, wrapper: Wrapper =None, model_name: str = "vit-pose"):
         self.logger = logging.getLogger(self.__class__.__name__)  # 獲取當前類的日誌對象
         self.logger.info("PoseEstimater initialized with wrapper.")
         self.detector = wrapper.detector
@@ -49,17 +49,12 @@ class PoseEstimater(object):
             pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox)
             new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name,frame_num)
             new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids)
-
             self._person_df = pl.concat([self._person_df, new_person_df])
             self.processed_frames.add(frame_num)
         self.fps_timer.toc()
-
         if self._joint_id is not None and self._track_id is not None:
             self.kpt_buffer = update_keypoint_buffer(self._person_df, self._track_id, self._joint_id, frame_num)
-
-
         return  int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0
-
 
     @property
     def model_name(self):

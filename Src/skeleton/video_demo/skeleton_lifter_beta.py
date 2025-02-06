@@ -8,7 +8,7 @@ from torch.profiler import profile, ProfilerActivity
 import logging
 
 class PoseLifter(object):
-    def __init__(self, wrapper: Wrapper =None,  model_name: str = "vi-pose"):
+    def __init__(self, wrapper: Wrapper =None,  model_name: str = "vit-pose"):
         self.logger = logging.getLogger(self.__class__.__name__)  # 獲取當前類的日誌對象
         self.logger.info("PoseLifter initialized with wrapper.")
         self.detector = wrapper.detector
@@ -29,38 +29,28 @@ class PoseLifter(object):
         self.kpt_buffer = []
 
     def detect_keypoints(self, image:np.ndarray, frame_num:int = None):
-        if self.image_buffer.full():  # 如果队列满了
-            self.image_buffer.get()  # 弹出队列最前面的元素
-        self.image_buffer.put(image)  # 将新元素加入队列
 
-        if not self._is_detect:
-            return 0
-        self.fps_timer.tic()
-        self.fps_timer.tic()
+        for track_id in track_ids:
+            # 從 new_person_df 中篩選該 track_id 的平滑數據
+            person_data = new_person_df.filter(pl.col('track_id') == track_id)
 
-        if frame_num not in self.processed_frames:
-            if frame_num % 5 == 0:
-                bboxes = self.detector.process_image(image)
-                online_targets = self.tracker.process_bbox(image, bboxes)
-                online_bbox, track_ids = filter_valid_targets(online_targets, self._track_id)
-                self._bbox_buffer = [online_bbox, track_ids]
-            else:
-                online_bbox, track_ids = self._bbox_buffer
-            # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-            # self.fps_timer.tic()
-            # self.fps_timer.toc()
-            # print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
-            # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
-            # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-            # self.fps_timer.tic()
-            pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox)
-            new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name,frame_num)
-            new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids)
+            if person_data.height == 0:  # 如果該 track_id 無數據，跳過
+                continue
+
+            # 提取平滑後的關鍵點
+            # smoothed_keypoints = np.array(person_data.select('keypoints')[0, 0])[:, :2]
+            keypoints_list = person_data.select('keypoints').to_numpy()[0][0]
+            # smoothed_keypoints = smoothed_keypoints.reshape(-1, 26)
+            smoothed_keypoints = np.array([kp[:2] for kp in keypoints_list])
+            # 更新到 pose_results 的 pred_instances 中
+            smoothed_keypoints = smoothed_keypoints[:17] if len(smoothed_keypoints) == 20 else smoothed_keypoints
+            smoothed_keypoints_tensor = torch.tensor(smoothed_keypoints, dtype=torch.float64)
+        for pred_instance in pred_instances:
+            # if pred_instance['track_id'] == track_id:  # 確保是正確的 track_id
+            pred_instance['keypoints'][0] = smoothed_keypoints_tensor
             # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
             pose_results = update_pose_results(new_person_df, pred_instances, track_ids)
             pose_results.track_id = torch.from_numpy(np.array(track_ids))
-            # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-            # self.fps_timer.tic()
             pred_3d_pred_instances = self.pose3d_estimator.process_pose3d(pose_results, track_ids, image.shape)
             # self.fps_timer.toc()
             # print(f"pose3d time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
@@ -143,11 +133,13 @@ class PoseLifter(object):
         if load_df.is_empty():
             self.logger.info("讀取資料的狀態: %s", not load_df.is_empty())
             return
-        # if load_df != self._person_df:
         self._person_df = load_df
         self.processed_frames = {frame_num for frame_num in self._person_df['frame_number']}
         self.logger.info("讀取資料的狀態: %s", not load_df.is_empty())
-        
+        print(self.person_df['track_id'].to_list()[0])
+        exit()
+
+
     def get_person_df(self, frame_num=None, is_select=False, is_kpt=False) ->pl.DataFrame:
         if self._person_df.is_empty():
             return pl.DataFrame([])

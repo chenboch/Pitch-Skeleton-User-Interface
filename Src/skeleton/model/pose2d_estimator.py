@@ -10,7 +10,7 @@ import torch
 import os
 
 class Pose2DEstimator(object):
-    def __init__(self, model_name:str = "vi-pose"):
+    def __init__(self, model_name:str = "vit-pose"):
         self._model_name = model_name
         if model_name == "vit-pose":
             self.pose2d_args = self.set_vitpose_parser()
@@ -24,7 +24,6 @@ class Pose2DEstimator(object):
                 self.pose2d_args
             )
 
-
     def process_image(self, image_array:np.ndarray, bbox:np.array) -> list:
         """_summary_
 
@@ -35,7 +34,7 @@ class Pose2DEstimator(object):
         Returns:
             _type_: _description_
         """
-        if self.model_name == "vit-pose":
+        if self._model_name == "vit-pose":
             image = image_array[-1]
             pose_results = vitpose_inference_topdown(self.pose2d_estimator, image, bbox)
             data_samples = merge_data_samples(pose_results)
@@ -56,12 +55,10 @@ class Pose2DEstimator(object):
 
         # 一次性使用 torch.stack 將所有 bboxes、keypoints、scores 合併為 tensor
         pred_instances = InstanceData()
-        pred_instances.bboxes = torch.tensor(bboxes)  # 合併所有 bboxes 為 tensor
-        pred_instances.keypoints = torch.tensor(keypoints)  # 合併所有 keypoints 為 tensor (N, K, 2)
-        pred_instances.keypoint_scores = torch.tensor(keypoint_scores)  # 合併所有 scores 為 tensor (N, K)
-
+        pred_instances.bboxes = torch.from_numpy(np.array(bboxes))
+        pred_instances.keypoints = torch.from_numpy(np.array(keypoints))
+        pred_instances.keypoint_scores = torch.from_numpy(np.array(keypoint_scores))
         return pred_instances
-
 
     def set_vitpose_parser(self) -> ArgumentParser:
         """_summary_
@@ -72,7 +69,7 @@ class Pose2DEstimator(object):
 
         parser = ArgumentParser()
         parser.add_argument('--pose-config', default='./mmpose_main/configs/body_2d_keypoint/topdown_heatmap/haple/ViTPose_base_simple_halpe_256x192.py', help='Config file for pose')
-        parser.add_argument('--pose-checkpoint', default='../Db/pretrain/epoch_240.pth', help='Checkpoint file for pose')
+        parser.add_argument('--pose-checkpoint', default='../Db/checkpoints/vitpose.pth', help='Checkpoint file for pose')
         parser.add_argument(
             '--device', default='cuda:0', help='Device used for inference')
         parser.add_argument(
@@ -93,7 +90,7 @@ class Pose2DEstimator(object):
         parser.add_argument('--PE_Name', help='pose estimation model name', required=False, type=str,
                             default='DSTA')
         parser.add_argument('-weight', help='model weight file', required=False, type=str
-                            , default='Src/DSTA_main/checkpoints/epoch_101_state.pth')
+                            , default='Db/checkpoints/dstapose.pth')
         parser.add_argument('--gpu_id', default='0')
         parser.add_argument('opts', help="Modify config options using the command-line", default=None, nargs=REMAINDER)
 
@@ -107,7 +104,6 @@ class Pose2DEstimator(object):
     @property
     def model_name(self):
         return self._model_name
-
 
     @model_name.setter
     def model_name(self, model_name):

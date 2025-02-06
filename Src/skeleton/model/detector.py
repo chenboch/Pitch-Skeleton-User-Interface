@@ -17,7 +17,7 @@ class Detector(object):
         self.detector.cfg.test_dataloader.dataset.pipeline[
             0].type = 'mmdet.LoadImageFromNDArray'
         self.detector_test_pipeline = Compose(self.detector.cfg.test_dataloader.dataset.pipeline)
-    
+
     def process_image(self, image: np.ndarray):
         # 進行物件偵測
         result = inference_detector(self.detector, image, test_pipeline= self.detector_test_pipeline)
@@ -32,7 +32,7 @@ class Detector(object):
     def setDetectParser(self) -> ArgumentParser:
         parser = ArgumentParser()
         parser.add_argument('--det-config', default='./mmyolo_main/configs/yolox/yolox_tiny_fast_8xb8-300e_coco.py', help='Config file for detection')
-        parser.add_argument('--det-checkpoint', default='../Db/pretrain/yolox_tiny_8xb8-300e_coco_20220919_090908-0e40a6fc.pth', help='Checkpoint file for detection')
+        parser.add_argument('--det-checkpoint', default='../Db/checkpoints/yolox_tiny_8xb8-300e_coco_20220919_090908-0e40a6fc.pth', help='Checkpoint file for detection')
         parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')
         parser.add_argument(
@@ -54,4 +54,4 @@ class Detector(object):
             help='Visualizing keypoint thresholds')
         args = parser.parse_args()
         return args
-    
+

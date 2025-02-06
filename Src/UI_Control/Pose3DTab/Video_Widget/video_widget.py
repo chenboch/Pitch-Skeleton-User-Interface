@@ -1,23 +1,23 @@
-from ...BaseTab import BasePoseVideoTab
+from UI_Control.BaseTab import BasePoseVideoTab
+from UI_Control.ui_utils import KeypointTable
+from skeleton import VidePose3DEstimaterBeta
 from .video_ui import Ui_video_widget
-from skeleton import VidePose3DEstimater
-from ...ui_utils import *
-# from .visualizer import SkeletonWidget
+from .canvas3d_widget import Canvas3DView
 
 class PoseVideoTabControl(BasePoseVideoTab):
     def __init__(self, wrapper, parent = None):
         super().__init__(wrapper, parent)
         self.ui = Ui_video_widget()
         self.ui.setupUi(self)
-        self.bindUI()
-        # print(self.ui.load_original_video_btn)  # 確保按鈕已初始化
-    
-    def bindUI(self):
+        self.bind_ui()
+
+
+    def bind_ui(self):
         self.ui.load_original_video_btn.clicked.connect(
             lambda: self.load_video(is_processed=False))
         self.ui.load_processed_video_btn.clicked.connect(
             lambda: self.load_video(is_processed=True))
-        
+
         self.ui.play_btn.clicked.connect(self.play_btn_clicked)
         self.ui.back_key_btn.clicked.connect(
             lambda: self.ui.frame_slider.setValue(self.ui.frame_slider.value() - 1)
@@ -37,14 +37,29 @@ class PoseVideoTabControl(BasePoseVideoTab):
         self.ui.show_bbox_checkbox.stateChanged.connect(self.toggle_show_bbox)
         self.ui.show_angle_checkbox.stateChanged.connect(self.toggle_show_angle_info)
 
+
+    def toggle_detect(self):
+        self.ui.show_skeleton_checkbox.setChecked(True)
+        frame = self.video_loader.get_video_image(0)
+        fps = self.pose_estimater.detect_keypoints(frame, 0)
+        self.ui.play_btn.click()
+
+    # def setup_canvas_view(self):
+    #     old_widget = self.ui.canvas_3d_view  # 取得 UI 內原本的 QWidget
+    #     self.ui.canvas_3d_view = Canvas3DView()  # 替換為 Canvas3DView
+    #     layout = self.ui.verticalLayout_3
+    #     layout.replaceWidget(old_widget, self.ui.canvas_3d_view)
+    #     old_widget.deleteLater()
+
+
     def setup_pose_estimater(self):
         """Setup 2D pose estimator."""
-        self.pose_estimater = VidePose3DEstimater(self.wrapper)
+        self.pose_estimater = VidePose3DEstimaterBeta(self.wrapper)
 
-    def keyPressEvent(self, event):
+    def key_press_event(self, event):
         if event.key() == ord('D') or event.key() == ord('d'):
             self.ui.frame_slider.setValue(self.ui.frame_slider.value() + 1)
         elif event.key() == ord('A') or event.key() == ord('a'):
             self.ui.frame_slider.setValue(self.ui.frame_slider.value() - 1)
         else:
-            super().keyPressEvent(event)
+            super().key_press_event(event)

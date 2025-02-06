@@ -3,6 +3,7 @@
 
 import numpy as np
 import cv2
+import torch
 
 
 def get_affine_transform(center, scale, rot, output_size, shift=np.array([0, 0], dtype=np.float32), inv=0):

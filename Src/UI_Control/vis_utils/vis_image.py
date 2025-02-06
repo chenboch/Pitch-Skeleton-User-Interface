@@ -57,13 +57,13 @@ class ImageDrawer():
             self.show_countdown = True
 
         if self.show_countdown:
-            image = self.drawCountdown(image, countdown_time)
+            image = self.draw_count_down(image, countdown_time)
 
         if self.show_grid :
-            image = self.drawGrid(image)
+            image = self.draw_grid(image)
 
         if self.show_bbox:
-            image = self.drawBbox(image, curr_person_df)
+            image = self.draw_bbox(image, curr_person_df)
 
         if self.show_skeleton:
             if self.pose_estimater.model_name == "vit-pose":
@@ -74,22 +74,22 @@ class ImageDrawer():
                                                     points_palette_samples=10)
 
         if self.show_traj:
-            image = self.drawTraj(image, kpt_buffer)
+            image = self.draw_traj(image, kpt_buffer)
 
         # if self.show_angle_info:
-        #     image = self.drawAngleInfo(image, frame_num)
+        #     image = self.draw_angle_info(image, frame_num)
 
         return image
 
-    def drawCross(self, image, x, y, length=5, color=(0, 0, 255), thickness=2):
+    def draw_cross(self, image, x, y, length=5, color=(0, 0, 255), thickness=2):
         cv2.line(image, (x, y - length), (x, y + length), color, thickness)
         cv2.line(image, (x - length, y), (x + length, y), color, thickness)
 
-    def drawGrid(self, image:np.ndarray):
+    def draw_grid(self, image:np.ndarray):
         #return image:np.ndarray
 
         height, width = image.shape[:2]
-        self.drawCross(image,int(width/2),int(height/2),length=20,color=(0,0,255),thickness = 3)
+        self.draw_cross(image,int(width/2),int(height/2),length=20,color=(0,0,255),thickness = 3)
         # 計算垂直線的位置
         vertical_interval = width // 5
         vertical_lines = [vertical_interval * i for i in range(1, 5)]
@@ -108,7 +108,7 @@ class ImageDrawer():
 
         return image
 
-    def drawBbox(self, image:np.ndarray, person_df:pl.DataFrame):
+    def draw_bbox(self, image:np.ndarray, person_df:pl.DataFrame):
         if person_df.is_empty():
             return image
         track_ids = person_df['track_id']
@@ -121,7 +121,7 @@ class ImageDrawer():
             image = cv2.putText(image, str(id), (x1, y1-10), cv2.FONT_HERSHEY_COMPLEX, 1.5, color, 2)
         return image
 
-    def drawTraj(self, img: np.ndarray, kpt_buffer: list):
+    def draw_traj(self, img: np.ndarray, kpt_buffer: list):
         if not kpt_buffer or len(kpt_buffer) < 2:
             return img
 
@@ -134,11 +134,9 @@ class ImageDrawer():
 
         return img
 
-    def drawAngleInfo(self, img: np.ndarray, frame_num: int) -> np.ndarray:
+    def draw_angle_info(self, img: np.ndarray, frame_num: int) -> np.ndarray:
         # 从 pose_analyzer 获取角度数据
         _, angle_info = self.pose_analyzer.get_frame_angle_data(frame_num, self.angle_name)
-        print(angle_info)
-        exit()
         if (len(angle_info) == 0):
             return img
         # 提取角度值，并将其转换为整数
@@ -155,7 +153,7 @@ class ImageDrawer():
 
         return img
 
-    def drawCountdown(self, img:np.ndarray,countdown_time:int):
+    def draw_count_down(self, img:np.ndarray,countdown_time:int):
         height, width, _ = img.shape
         text = str(countdown_time)
 
@@ -176,7 +174,7 @@ class ImageDrawer():
 
         return img
 
-    def drawPoints(self, image, points, track_idx, color_palette='gist_rainbow', palette_samples=10, confidence_threshold=0.3):
+    def draw_points(self, image, points, track_idx, color_palette='gist_rainbow', palette_samples=10, confidence_threshold=0.3):
         """
         Draws `points` on `image`.
 
@@ -215,7 +213,7 @@ class ImageDrawer():
 
         return image
 
-    def drawSkeleton(self, image, points, skeleton, color_palette='Set2', palette_samples='jet', person_index=0,
+    def draw_skeleton(self, image, points, skeleton, color_palette='Set2', palette_samples='jet', person_index=0,
                     confidence_threshold=0.5):
         """
         Draws a `skeleton` on `image`.
@@ -310,8 +308,8 @@ class ImageDrawer():
             return image
         person_data = self.df_to_points(person_df)
         for track_id, points in person_data.items():
-            image = self.drawSkeleton(image, points, skeleton,person_index=track_id)
-            image = self.drawPoints(image, points,track_idx=track_id)
+            image = self.draw_skeleton(image, points, skeleton,person_index=track_id)
+            image = self.draw_points(image, points,track_idx=track_id)
         return image
 
     def df_to_points(self, person_df):
@@ -336,27 +334,27 @@ class ImageDrawer():
             self._show_bbox = status
             self.logger.info(f"當前顯示bbox的狀態: {self._show_bbox}")
 
-    def setShowSkeleton(self, status:bool):
+    def set_show_skeleton(self, status:bool):
         self.show_skeleton = status
 
-    def setShowGrid(self, status:bool):
+    def set_show_grid(self, status:bool):
         self.show_grid = status
 
-    def setShowRegion(self, status:bool):
+    def set_show_region(self, status:bool):
         self.show_region = status
 
-    def setShowTraj(self, status:bool):
+    def set_show_traj(self, status:bool):
         self.show_traj = status
 
     def set_show_angle_info(self, status:bool):
         self.show_angle_info = status
         if status:
-            self.setAngleInfoPos()
+            self.set_angle_info_pos()
 
-    def setShowCountdown(self,status:bool):
+    def set_show_countdown(self,status:bool):
         self.show_countdown = status
 
-    def setAngleInfoPos(self):
+    def set_angle_info_pos(self):
         person_df = self.pose_estimater.get_person_df(is_select=True)
         if person_df is None:
             return

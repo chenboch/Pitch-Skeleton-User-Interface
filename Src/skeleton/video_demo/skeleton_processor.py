@@ -47,56 +47,6 @@ def filter_valid_targets(online_targets, select_id: int = None):
 
     return valid_bbox.cpu().tolist(), valid_track_ids.cpu().tolist()
 
-# def coco2posetrack(keypoint):
-#     data = np.zeros((len(posetrack_keypoint_info['keypoints']), 4))
-#     data[:17] = keypoint
-#     x_mhead = (keypoint[1][0] + keypoint[2][0]) / 2.0
-#     y_mhead = (keypoint[1][1] + keypoint[2][1]) / 2.0
-#     s_mhead = (keypoint[1][2] + keypoint[2][2]) / 2.0
-#     x_msho = (keypoint[5][0] + keypoint[6][0]) / 2.0
-#     y_msho = (keypoint[5][1] + keypoint[6][1]) / 2.0
-#     s_msho = (keypoint[5][2] + keypoint[6][2]) / 2.0
-#     x_butt = (keypoint[11][0] + keypoint[12][0]) / 2.0
-#     y_butt = (keypoint[11][1] + keypoint[12][1]) / 2.0
-#     s_butt = (keypoint[11][2] + keypoint[12][2]) / 2.0
-#     data[17] = [x_mhead, y_mhead, s_mhead, False]
-#     data [18] = [x_msho,y_msho,s_msho, False]
-#     data [19] = [x_butt,y_butt,s_butt, False]
-#     return data.tolist()
-
-# def merge_person_data(pred_instances, track_ids: list, model_name:str, frame_num: int = None) ->pl.DataFrame:
-#     person_bboxes = pred_instances['bboxes']
-
-#     new_person_data = []  # 用於暫存新的數據
-#     for person, pid, bbox in zip(pred_instances, track_ids, person_bboxes):
-#         keypoints_data = np.hstack((
-#             np.round(person['keypoints'][0], 2),
-#             np.round(person['keypoint_scores'][0], 2).reshape(-1, 1),
-#             np.full((len(person['keypoints'][0]), 1), False, dtype=bool)
-#         ))
-#         if model_name == "vit-pose":
-#             new_kpts = np.full((len(halpe26_keypoint_info['keypoints']), keypoints_data.shape[1]), 0.9)
-#             new_kpts[:26] = keypoints_data
-#             new_kpts = new_kpts.tolist()
-#         else:
-#             new_kpts =coco2posetrack(keypoints_data)
-#         bbox = bbox.tolist()
-#         person_info = {
-#             'track_id': pid,
-#             'bbox': bbox,
-#             'area': np.round(bbox[2] * bbox[3],2),
-#             'keypoints': new_kpts
-#         }
-#         if frame_num is not None:
-#             person_info['frame_number'] = frame_num
-
-#         new_person_data.append(person_info)
-
-#     # 將新的數據轉為 DataFrame 並合併到 self.person_df
-#     new_person_df = pl.DataFrame(new_person_data)
-
-#     return new_person_df
-
 def coco2posetrack(keypoint):
     data = np.zeros((len(posetrack_keypoint_info['keypoints']), 4))
     data[:17] = keypoint
@@ -287,7 +237,7 @@ def correct_track_id(person_df:pl.DataFrame, before_correctId:int, after_correct
 
 #process 3d joints
 
-def update_pose_results(new_person_df: pl.DataFrame, pose_results, track_ids: list):
+def update_pose_results(new_person_df: pl.DataFrame, pred_instances, track_ids: list):
     """
     將平滑後的關鍵點數據從 new_person_df 更新回 data_samples 的結構。
 
@@ -314,23 +264,12 @@ def update_pose_results(new_person_df: pl.DataFrame, pose_results, track_ids: li
         # smoothed_keypoints = smoothed_keypoints.reshape(-1, 26)
         smoothed_keypoints = np.array([kp[:2] for kp in keypoints_list])
         # 更新到 pose_results 的 pred_instances 中
-        for pred_instance in pose_results[0].pred_instances:
+        smoothed_keypoints = smoothed_keypoints[:17] if len(smoothed_keypoints) == 20 else smoothed_keypoints
+        smoothed_keypoints_tensor = torch.tensor(smoothed_keypoints, dtype=torch.float64)
+        for pred_instance in pred_instances:
             # if pred_instance['track_id'] == track_id:  # 確保是正確的 track_id
-            pred_instance['keypoints'][0] = smoothed_keypoints
-
-    return pose_results
-
-def convert_keypoints(pose_result, keypoints, det_name, lift_name):
-    """轉換 2D 關鍵點的數據格式。"""
-    converted_sample = PoseDataSample()
-    converted_sample.set_field(pose_result.pred_instances.clone(), 'pred_instances')
-    converted_sample.set_field(pose_result.gt_instances.clone(), 'gt_instances')
-
-    # 轉換關鍵點定義
-    keypoints = convert_keypoint_definition(keypoints, det_name, lift_name)
-    converted_sample.pred_instances.set_field(keypoints, 'keypoints')
-    converted_sample.set_field(pose_result.track_id, 'track_id')
-    return converted_sample
+            pred_instance['keypoints'][0] = smoothed_keypoints_tensor
+    return pred_instances
 
 def extract_3d_data(data_3d_samples, track_ids):
     """
@@ -404,7 +343,3 @@ def postprocess_pose_lift(pose_lift_results, pose_results):
             pose_lift_results, key=lambda x: x.get('track_id', 1e4))
 
     return pose_lift_results
-
-    # # 更新 keypoints_3d 列，優先使用新數據
-    # new_person_df['keypoints_3d'] = new_person_df['keypoints_3d_new'].combine_first(new_person_df['keypoints_3d'])
-    # self.person_df.drop(columns=['keypoints_3d_new'], inplace=True)

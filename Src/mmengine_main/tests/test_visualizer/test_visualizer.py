@@ -181,18 +181,18 @@ class TestVisualizer(TestCase):
         for name in ['mock1', 'mock2']:
             assert visualizer.get_backend(name)._close is True
 
-    def test_drawPoints(self):
+    def test_draw_points(self):
         visualizer = Visualizer(image=self.image)
 
         with pytest.raises(TypeError):
-            visualizer.drawPoints(positions=[1, 2])
+            visualizer.draw_points(positions=[1, 2])
         with pytest.raises(AssertionError):
-            visualizer.drawPoints(positions=np.array([1, 2, 3], dtype=object))
+            visualizer.draw_points(positions=np.array([1, 2, 3], dtype=object))
         # test color
-        visualizer.drawPoints(
+        visualizer.draw_points(
             positions=torch.tensor([[1, 1], [3, 3]]),
             colors=['g', (255, 255, 0)])
-        visualizer.drawPoints(
+        visualizer.draw_points(
             positions=torch.tensor([[1, 1], [3, 3]]),
             colors=['g', (255, 255, 0)],
             marker='.',
