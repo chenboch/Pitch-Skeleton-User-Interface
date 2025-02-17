@@ -46,6 +46,12 @@
     pip install -v -e .
     cd ..\..\
     ```
+9. Setup ByteTrack enviroment:
+    ```
+    cd Bytetrack
+    pip3 install -r requirements.txt
+    python3 setup.py develop
+    ```
 ### Data Preparation
 To obtain the vitpose、yolo and fast-reid wights, it can be downloaded from the https://drive.google.com/drive/folders/1D7Q5bTnTAfKkfLuppqUo4_8W4t0wrCmP?usp=sharing. The resulting data directory should look like this:
 
