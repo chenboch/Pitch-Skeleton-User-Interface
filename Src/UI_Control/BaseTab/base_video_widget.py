@@ -25,12 +25,13 @@ class AbstractPoseBase(QObject, metaclass=SipABCMeta):
         pass
 
 class BasePoseVideoTab(QWidget, AbstractPoseBase):
-    def __init__(self, wrapper:Wrapper, parent: Optional[QWidget] = None):
+    def __init__(self, wrapper:Wrapper, model_name: str, parent: Optional[QWidget] = None):
         super(BasePoseVideoTab, self).__init__(parent)
         self.logger = logging.getLogger(self.__class__.__name__)  # 獲取當前類的日誌對象
         # self.logger.info("PoseEstimater initialized with wrapper.")
         self.ui = None
         self.wrapper = wrapper
+        self.model_name = model_name
         self.is_processed = False
         self.view_scene = QGraphicsScene()
         self.curve_scene = QGraphicsScene()
@@ -137,7 +138,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         self.check_video_load()
 
     def load_processed_data(self):
-        json_loader = JsonLoader(self.video_loader.folder_path, self.video_loader.video_name)
+        json_loader = JsonLoader(self.video_loader.folder_path, self.video_loader.video_name, self.model_name)
         json_loader.load_json()
         self.pose_estimater.person_df = json_loader.person_df
         self.ui.show_skeleton_checkbox.setChecked(True)
@@ -211,7 +212,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
             self.graph_plotter.updateGraph(frame_num)
             self.kpt_table.importDataToTable(frame_num)
         if frame_num == self.video_loader.total_frames - 1:
-            self.video_loader.save_video()
+            self.video_loader.save_video(self.model_name)
         self.update_frame(frame_num)
 
     def update_frame(self, frame_num:int):
@@ -231,9 +232,6 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
             self.ui.select_checkbox.setCheckState(0)
             self.logger.warning("無法選擇人，請選擇顯示人體骨架!")
             return
-        # if state == 2:
-        #     self.person_selector.select(search_person_df=self.pose_estimater.get_person_df(frame_num=self.ui.frame_slider.value()))
-        #     self.pose_estimater.track_id = self.person_selector.selected_id
         if state == 0:
             self.pose_estimater.track_id = None
             self.ui.select_kpt_checkbox.setCheckState(0)

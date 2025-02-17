@@ -75,7 +75,6 @@ class FeatureMapProcessor(nn.Module):
 
         if not sequential_input:
             inputs = inputs[0]
-
         return inputs
 
     def _concat(self, inputs: Sequence[Tensor]) -> List[Tensor]:

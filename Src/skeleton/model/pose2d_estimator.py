@@ -24,7 +24,7 @@ class Pose2DEstimator(object):
                 self.pose2d_args
             )
 
-    def process_image(self, image_array:np.ndarray, bbox:np.array) -> list:
+    def process_image(self, image_array:np.ndarray, bbox:np.array, frame_num:int) -> list:
         """_summary_
 
         Args:
@@ -40,7 +40,7 @@ class Pose2DEstimator(object):
             data_samples = merge_data_samples(pose_results)
             return data_samples.get('pred_instances', None)
 
-        pose_results = dstapose_inference_topdown(self.pose2d_estimator, image_array, np.array(bbox))
+        pose_results = dstapose_inference_topdown(self.pose2d_estimator, image_array, np.array(bbox), frame_num)
         # 使用列表保存預處理的結果
         bboxes = []
         keypoints = []
@@ -90,7 +90,7 @@ class Pose2DEstimator(object):
         parser.add_argument('--PE_Name', help='pose estimation model name', required=False, type=str,
                             default='DSTA')
         parser.add_argument('-weight', help='model weight file', required=False, type=str
-                            , default='Db/checkpoints/dstapose.pth')
+                            , default='Db/checkpoints/dstapose_384x288.pth')
         parser.add_argument('--gpu_id', default='0')
         parser.add_argument('opts', help="Modify config options using the command-line", default=None, nargs=REMAINDER)
 

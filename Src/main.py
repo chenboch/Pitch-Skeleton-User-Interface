@@ -16,7 +16,7 @@ class Main(QMainWindow):
         super(Main, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.wrapper = Wrapper()
+        self.wrapper = Wrapper(track_model="ByteTracker", pose_model="vit-pose")
         self.init_tabs()
 
     def init_tabs(self):
@@ -30,7 +30,7 @@ class Main(QMainWindow):
         self.ui.Two_d_Tab.addTab(self.video3d_tab, "3D 影片")
 
 
-    
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

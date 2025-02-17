@@ -39,13 +39,19 @@ class PoseVideoTabControl(BasePoseVideoTab):
 
     def setup_pose_estimater(self):
         """Setup 2D pose estimator."""
-        self.pose_estimater = VidePose2DEstimater(self.wrapper, model_name="vi-pose")
-
+        self.pose_estimater = VidePose2DEstimater(self.wrapper)
+        self.model_name = self.wrapper.pose2d_estimator.model_name
 
     def key_press_event(self, event):
-        if event.key() == ord('D') or event.key() == ord('d'):
-            self.ui.frame_slider.setValue(self.ui.frame_slider.value() + 1)
-        elif event.key() == ord('A') or event.key() == ord('a'):
-            self.ui.frame_slider.setValue(self.ui.frame_slider.value() - 1)
+        key = event.key()
+        slider = self.ui.frame_slider
+
+        if chr(key).lower() == 'd':  # 按下 'D' 或 'd'
+            new_value = slider.value() + 1
+            slider.setValue(min(new_value, slider.maximum()))  # 防止超过最大值
+        elif chr(key).lower() == 'a':  # 按下 'A' 或 'a'
+            new_value = slider.value() - 1
+            slider.setValue(max(new_value, slider.minimum()))  # 防止低于最小值
         else:
-            super().key_press_event(event)
+            super().keyPressEvent(event)  # 调用父类默认行为
+

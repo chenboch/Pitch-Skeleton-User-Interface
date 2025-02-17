@@ -234,8 +234,7 @@ class PoseTrack18VideoDataset(BaseCocoStyleDataset):
 
         # get the keypoints of the center frame
         # keypoints in shape [1, K, 2] and keypoints_visible in [1, K]
-        _keypoints = np.array(
-            ann['keypoints'], dtype=np.float32).reshape(1, -1, 3)
+        _keypoints = np.array(ann['keypoints'], dtype=np.float32).reshape(1, -1, 3)
         keypoints = _keypoints[..., :2]
         keypoints_visible = np.minimum(1, _keypoints[..., 2])
 

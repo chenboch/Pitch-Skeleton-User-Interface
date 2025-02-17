@@ -14,8 +14,7 @@ class PoseLifter(object):
         self.detector = wrapper.detector
         self.tracker = wrapper.tracker
         self.pose2d_estimator = wrapper.pose2d_estimator
-        self.pose2d_estimator.model_name = model_name
-        self._model_name = model_name
+        self._model_name = self.pose2d_estimator.model_name
         self.pose3d_estimator = wrapper.pose3d_estimator
         self._person_df = pl.DataFrame()
         self._track_id = None

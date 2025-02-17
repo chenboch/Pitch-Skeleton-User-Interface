@@ -8,14 +8,13 @@ from torch.profiler import profile, ProfilerActivity
 import polars as pl
 
 class PoseEstimater(object):
-    def __init__(self, wrapper: Wrapper =None, model_name: str = "vit-pose"):
+    def __init__(self, wrapper: Wrapper =None):
         self.logger = logging.getLogger(self.__class__.__name__)  # 獲取當前類的日誌對象
         self.logger.info("PoseEstimater initialized with wrapper.")
         self.detector = wrapper.detector
         self.tracker = wrapper.tracker
         self.pose2d_estimator = wrapper.pose2d_estimator
-        self.pose2d_estimator.model_name = model_name
-        self._model_name = model_name
+        self._model_name =  self.pose2d_estimator.model_name
         self.pose3d_estimator = wrapper.pose3d_estimator
         self._person_df = pl.DataFrame()
         self._bbox_buffer = []
@@ -38,15 +37,24 @@ class PoseEstimater(object):
         self.fps_timer.tic()
 
         if frame_num not in self.processed_frames:
-            if frame_num % 5 == 0:
+            if frame_num % 1 == 0:
+                self.fps_timer.tic()
                 bboxes = self.detector.process_image(image)
+                self.fps_timer.toc()
+                print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
+
                 online_targets = self.tracker.process_bbox(image, bboxes)
                 online_bbox, track_ids = filter_valid_targets(online_targets, self._track_id)
                 self._bbox_buffer = [online_bbox, track_ids]
             else:
                 online_bbox, track_ids = self._bbox_buffer
 
-            pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox)
+            if len(online_bbox) == 0 or len(track_ids) == 0:
+                self.processed_frames.add(frame_num)
+                self.fps_timer.toc()
+                return  int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0
+
+            pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox, frame_num)
             new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name,frame_num)
             new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids)
             self._person_df = pl.concat([self._person_df, new_person_df])

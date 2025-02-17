@@ -27,8 +27,6 @@ args = None
 
 def init_pose_model(args:argparse.ArgumentParser):
     logger = logging.getLogger(__name__)
-    # global cfg, args
-    # args = parse_args()
     cfg = get_cfg(args)
     update_config(cfg, args)
     logger.info("load :{}".format(args.weight))
@@ -46,13 +44,18 @@ image_transforms = build_transforms(None, INFERENCE_PHASE)
 image_size = np.array([192, 256])
 aspect_ratio = image_size[0] * 1.0 / image_size[1]
 
-def image_preprocess(image_data: np.ndarray, center, scale):
+def image_preprocess(image_data: np.ndarray, center, scale, frame_num):
+    # output_folder = os.path.join("../Db/bbox")
+    # os.makedirs(output_folder, exist_ok=True)
+
     trans_matrix = get_affine_transform(center, scale, 0, image_size)
     image_data = cv2.warpAffine(image_data, trans_matrix, (int(image_size[0]), int(image_size[1])), flags=cv2.INTER_LINEAR)
+    # img_path =  os.path.join(output_folder, f"{frame_num:08d}.jpg" )
+    # cv2.imwrite(img_path, image_data)
     image_data = image_transforms(image_data)
     return image_data
 
-def inference_topdown(model, image_list: np.ndarray, person_data)-> np.ndarray:
+def inference_topdown(model, image_list: np.ndarray, person_data, frame_num :int)-> np.ndarray:
     """
         image_list : [pprev_image, prev_image, cur_image]
         person_data = {'track_id' : [pprev_bbox, prev_bbox, cur_bbox]}
@@ -71,12 +74,13 @@ def inference_topdown(model, image_list: np.ndarray, person_data)-> np.ndarray:
         cur_idx = min(2, len(image_list) - 1)
 
         center, scale = box2cs(bbox, aspect_ratio)
+        # scale = scale * 1.5
         centers.append(center)
         scales.append(scale)
 
-        pprev_image_data  = image_preprocess(image_list[pprev_idx], center, scale)
-        prev_image_data   = image_preprocess(image_list[prev_idx], center, scale)
-        target_image_data = image_preprocess(image_list[cur_idx], center, scale)
+        pprev_image_data  = image_preprocess(image_list[pprev_idx], center, scale,frame_num)
+        prev_image_data   = image_preprocess(image_list[prev_idx], center, scale, frame_num)
+        target_image_data = image_preprocess(image_list[cur_idx], center, scale, frame_num)
 
         # Add the preprocessed images to the list
         pprev_image_data = pprev_image_data.unsqueeze(0)

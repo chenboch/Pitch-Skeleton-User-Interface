@@ -17,11 +17,11 @@ class Wrapper:
     提供統一的介面來初始化和訪問這些元件。
     """
 
-    def __init__(self):
+    def __init__(self, track_model:str = "bytetrack", pose_model:str = "vit-pose"):
         """初始化 Wrapper 類別，建立 Detector、Tracker 等實例。"""
         self._detector = Detector()
-        self._tracker = Tracker()
-        self._pose2d_estimator = Pose2DEstimator(model_name="vi-pose")
+        self._tracker = Tracker(model_name= track_model)
+        self._pose2d_estimator = Pose2DEstimator(model_name = pose_model)
         self._pose3d_estimator = Pose3DEstimator()
 
     @property

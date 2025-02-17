@@ -142,7 +142,7 @@ class VideoLoader:
     def get_video_image(self, frame_num:int) -> np.ndarray:
         return self.video_frames[frame_num].copy()
 
-    def save_video(self):
+    def save_video(self, model_name:str):
         # relative_path = os.path.relpath(self.folder_path, start="C:/Users/user/Desktop/Pitch-Skeleton-User-Interface/Db/Db_KCGM_Baseball")
         # 将空格替换为下划线
         # formatted_path = relative_path.replace(" ", "_")
@@ -155,15 +155,17 @@ class VideoLoader:
         # output_folder = os.path.join("../Db/Record", formatted_path+"_"+self.video_name)
         # ann_folder = os.path.join("../Db/Data/annotations/train")
         # img_folder = os.path.join("../Db/Data/images", formatted_path+"_"+self.video_name)
-        output_folder = os.path.join("../Db/Record", self.video_name)
+        output_folder = os.path.join("../Db/output", self.video_name)
         ann_folder = os.path.join("../Db/Data/annotations/train")
         img_folder = os.path.join("../Db/Data/images", self.video_name)
 
         os.makedirs(output_folder, exist_ok=True)
         os.makedirs(img_folder, exist_ok=True)
         os.makedirs(ann_folder,exist_ok=True)
-        json_path = os.path.join(output_folder, f"{self.video_name}.json")
 
+        json_path = os.path.join(output_folder, f"{self.video_name}_Sk17.json")
+        if model_name == "vit-pose":
+            json_path = os.path.join(output_folder, f"{self.video_name}_Sk26.json")
         json_ann_path =  os.path.join(ann_folder, f"{fm_path}_{self.video_name}.json")
         save_person_df = self.image_drawer.pose_estimater.person_df
 
@@ -206,7 +208,10 @@ class VideoLoader:
 
         video_writer.release()
         # save_location = os.path.join(output_folder, f"{formatted_path}_{self.video_name}_Sk26.mp4")
-        save_location = os.path.join(output_folder, f"{self.video_name}_Sk26.mp4")
+        save_location = os.path.join(output_folder, f"{self.video_name}_Sk17.mp4")
+        if model_name == "vit-pose":
+            save_location = os.path.join(output_folder, f"{self.video_name}_Sk26.mp4")
+
         video_writer = cv2.VideoWriter(save_location, cv2.VideoWriter_fourcc(*'mp4v'), self.video_fps, self.video_size)
         for frame_num, frame in enumerate(self.video_frames):
             img_path =  os.path.join(img_folder, f"{frame_num:08d}.jpg" )
@@ -228,15 +233,18 @@ class VideoLoader:
         self.is_loading = False
 
 class JsonLoader:
-    def __init__(self, folder_path:str = None, file_name:str = None):
+    def __init__(self, folder_path:str = None, file_name:str = None, model_name:str = None):
         self.folder_path = folder_path
         self.file_name = file_name
         self.person_df = pl.DataFrame()
+        self.model_name = model_name
 
     def load_json(self) -> pl.DataFrame:
         if self.folder_path == None or self.file_name == None:
             return
-        json_path = os.path.join(self.folder_path, f"{self.file_name}.json")
+        json_path = os.path.join(self.folder_path, f"{self.file_name}_Sk17.json")
+        if self.model_name == "vit-pose":
+             json_path = os.path.join(self.folder_path, f"{self.file_name}_Sk26.json")
         print(json_path)
 
         if not os.path.exists(json_path):

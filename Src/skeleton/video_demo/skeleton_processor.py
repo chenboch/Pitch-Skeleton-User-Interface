@@ -20,7 +20,8 @@ def filter_valid_targets(online_targets, select_id: int = None):
         Tuple: 有效的邊界框 (Tensor) 和追蹤ID (Tensor)。
     """
     if not online_targets:
-        return torch.empty((0, 4), device='cuda'), torch.empty((0,), dtype=torch.int32, device='cuda')
+        return [], torch.empty((0,), dtype=torch.int32, device='cuda').tolist()
+
     tlwhs = []
     for target in online_targets:
         tlwhs.append(target.tlwh)
