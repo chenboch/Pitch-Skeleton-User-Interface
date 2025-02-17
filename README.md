@@ -21,32 +21,32 @@
     pip install mmcv==2.0.1 -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.html
     mim install "mmdet==3.1.0"
     ```
-5. Setup mmpose environment:
+4. Setup mmpose environment:
     ```
     cd Src\mmpose_main
     pip install -r requirements.txt
     pip install -v -e .
     cd ..\..\
     ```
-6. Setup mmyolo environment:
+5. Setup mmyolo environment:
     ```
     cd Src\mmyolo_main
     pip install -r requirements.txt
     pip install -v -e .
     cd ..\..\
     ```
-7. Setup mmengine_main environment:
+6. Setup mmengine_main environment:
     ```
     mim install mmengine
     ```
-8. Setup mmpretrain_main environment:
+7. Setup mmpretrain_main environment:
     ```
     cd Src\mmpretrain_main
     pip install -r requirements.txt
     pip install -v -e .
     cd ..\..\
     ```
-9. Setup ByteTrack enviroment:
+8. Setup ByteTrack enviroment:
     ```
     cd Bytetrack
     pip3 install -r requirements.txt
