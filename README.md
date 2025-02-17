@@ -21,44 +21,52 @@
     pip install mmcv==2.0.1 -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.html
     mim install "mmdet==3.1.0"
     ```
-5. Setup mmpose environment:
+4. Setup mmpose environment:
     ```
     cd Src\mmpose_main
     pip install -r requirements.txt
     pip install -v -e .
     cd ..\..\
     ```
-6. Setup mmyolo environment:
+5. Setup mmyolo environment:
     ```
     cd Src\mmyolo_main
     pip install -r requirements.txt
     pip install -v -e .
     cd ..\..\
     ```
-7. Setup mmengine_main environment:
+6. Setup mmengine_main environment:
     ```
     mim install mmengine
     ```
-8. Setup mmpretrain_main environment:
+7. Setup mmpretrain_main environment:
     ```
     cd Src\mmpretrain_main
     pip install -r requirements.txt
     pip install -v -e .
     cd ..\..\
     ```
+8. Setup ByteTrack enviroment:
+    ```
+    cd Bytetrack
+    pip3 install -r requirements.txt
+    python3 setup.py develop
+    ```
 ### Data Preparation
 To obtain the vitpose、yolo and fast-reid wights, it can be downloaded from the https://drive.google.com/drive/folders/1D7Q5bTnTAfKkfLuppqUo4_8W4t0wrCmP?usp=sharing. The resulting data directory should look like this:
 
     ${POSE_ROOT}
     |-- Db
-    -- |-- pretrain
-            |-- vitpose_Sk26.pth
-            |-- yolov7_x_syncbn_fast_8x16b-300e_coco_20221124_215331-ef949a68.pth
-    -- |-- Record (for output data)
+    -- |-- checkpoints
+            |-- vitpose.pth
+            |-- dstapose_384x288.pth
+            |-- yolox_tiny_8xb8-300e_coco_20220919_090908-0e40a6fc.pth
+    -- |-- output (for output data)
             |-- {video_name}.mp4 (原始影片)
-            |-- {video_name}_Sk26.mp4 (將原始影片畫上骨架資訊)
-            |-- {video_name}.json (將偵測出來的結果紀錄，裡面包含了人物的bounding box info. 和 26 個關節點位置)
-
+            |-- {video_name}_Sk26.mp4 (將原始影片畫上骨架資訊,vit pose model output)
+            |-- {video_name}_Sk17.mp4 (將原始影片畫上骨架資訊,DSTA pose model output)
+            |-- {video_name}_Sk26.json (將偵測出來的結果紀錄，裡面包含了人物的bounding box info. 和 26 個關節點位置)
+            |-- {video_name}_Sk17.json (將偵測出來的結果紀錄，裡面包含了人物的bounding box info. 和 17 個關節點位置)
     |-- Src
 
 ### Demo
