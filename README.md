@@ -57,14 +57,16 @@ To obtain the vitpose、yolo and fast-reid wights, it can be downloaded from the
 
     ${POSE_ROOT}
     |-- Db
-    -- |-- pretrain
-            |-- vitpose_Sk26.pth
-            |-- yolov7_x_syncbn_fast_8x16b-300e_coco_20221124_215331-ef949a68.pth
-    -- |-- Record (for output data)
+    -- |-- checkpoints
+            |-- vitpose.pth
+            |-- dstapose_384x288.pth
+            |-- yolox_tiny_8xb8-300e_coco_20220919_090908-0e40a6fc.pth
+    -- |-- output (for output data)
             |-- {video_name}.mp4 (原始影片)
-            |-- {video_name}_Sk26.mp4 (將原始影片畫上骨架資訊)
-            |-- {video_name}.json (將偵測出來的結果紀錄，裡面包含了人物的bounding box info. 和 26 個關節點位置)
-
+            |-- {video_name}_Sk26.mp4 (將原始影片畫上骨架資訊,vit pose model output)
+            |-- {video_name}_Sk17.mp4 (將原始影片畫上骨架資訊,DSTA pose model output)
+            |-- {video_name}_Sk26.json (將偵測出來的結果紀錄，裡面包含了人物的bounding box info. 和 26 個關節點位置)
+            |-- {video_name}_Sk17.json (將偵測出來的結果紀錄，裡面包含了人物的bounding box info. 和 17 個關節點位置)
     |-- Src
 
 ### Demo
