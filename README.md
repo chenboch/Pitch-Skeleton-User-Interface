@@ -72,7 +72,7 @@ To obtain the vitpose、yolo and fast-reid wights, it can be downloaded from the
 ### Demo
 1. Demo command
     ```
-    python Src\UI_Control\main.py
+    python Src\main.py
     ```
 2. 2D 相機
     ```

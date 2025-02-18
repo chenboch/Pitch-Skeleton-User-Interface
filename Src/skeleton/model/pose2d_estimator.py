@@ -90,7 +90,7 @@ class Pose2DEstimator(object):
         parser.add_argument('--PE_Name', help='pose estimation model name', required=False, type=str,
                             default='DSTA')
         parser.add_argument('-weight', help='model weight file', required=False, type=str
-                            , default='Db/checkpoints/dstapose_384x288.pth')
+                            , default='Db/checkpoints/epoch_190_state.pth')
         parser.add_argument('--gpu_id', default='0')
         parser.add_argument('opts', help="Modify config options using the command-line", default=None, nargs=REMAINDER)
 

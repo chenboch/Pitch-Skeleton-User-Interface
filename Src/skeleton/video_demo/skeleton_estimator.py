@@ -38,10 +38,10 @@ class PoseEstimater(object):
 
         if frame_num not in self.processed_frames:
             if frame_num % 1 == 0:
-                self.fps_timer.tic()
+                # self.fps_timer.tic()
                 bboxes = self.detector.process_image(image)
-                self.fps_timer.toc()
-                print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
+                # self.fps_timer.toc()
+                # print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
 
                 online_targets = self.tracker.process_bbox(image, bboxes)
                 online_bbox, track_ids = filter_valid_targets(online_targets, self._track_id)
