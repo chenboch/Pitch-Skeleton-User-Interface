@@ -3,7 +3,7 @@ import polars as pl
 from ..model.wrapper import Wrapper
 import queue
 from .skeleton_processor import *
-from ..lib import FPSTimer
+from ..utils import FPSTimer
 from torch.profiler import profile, ProfilerActivity
 import logging
 
@@ -39,21 +39,20 @@ class PoseLifter(object):
         self.fps_timer.tic()
 
         if frame_num not in self.processed_frames:
-            if frame_num % 5 == 0:
+            if frame_num % 1 == 0:
                 bboxes = self.detector.process_image(image)
+
                 online_targets = self.tracker.process_bbox(image, bboxes)
                 online_bbox, track_ids = filter_valid_targets(online_targets, self._track_id)
                 self._bbox_buffer = [online_bbox, track_ids]
             else:
                 online_bbox, track_ids = self._bbox_buffer
-            # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-            # self.fps_timer.tic()
-            # self.fps_timer.toc()
-            # print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
-            # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
-            # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-            # self.fps_timer.tic()
-            pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox)
+
+            if len(online_bbox) == 0 or len(track_ids) == 0:
+                self.processed_frames.add(frame_num)
+                self.fps_timer.toc()
+                return  int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0
+            pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox, frame_num)
             new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name,frame_num)
             new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids)
             # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
@@ -147,7 +146,7 @@ class PoseLifter(object):
         self._person_df = load_df
         self.processed_frames = {frame_num for frame_num in self._person_df['frame_number']}
         self.logger.info("讀取資料的狀態: %s", not load_df.is_empty())
-        
+
     def get_person_df(self, frame_num=None, is_select=False, is_kpt=False) ->pl.DataFrame:
         if self._person_df.is_empty():
             return pl.DataFrame([])

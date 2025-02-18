@@ -1,14 +1,17 @@
 from PyQt5.QtWidgets import QTableWidgetItem, QTableWidget
 from PyQt5.QtCore import Qt
 import numpy as np
-from skeleton.datasets import halpe26_keypoint_info
+from skeleton.datasets import halpe26_keypoint_info,posetrack_keypoint_info
 
 
 class KeypointTable:
     def __init__(self, table_widget: QTableWidget, pose_estimater):
         self.kpt_table = table_widget
         self.pose_estimater = pose_estimater
-        self.kpt_dict = halpe26_keypoint_info["keypoints"]
+        # if pose_estimater.model_name == 'vit-pose':
+        #     self.kpt_dict = halpe26_keypoint_info["keypoints"]
+        # else:
+        self.kpt_dict = posetrack_keypoint_info["keypoints"]
         self.correct_kpt_idx = None
         self.label_kpt = False
         self.clearTableView()
@@ -30,8 +33,7 @@ class KeypointTable:
             return
 
         # 獲取關鍵點信息
-        kpt_dict = halpe26_keypoint_info["keypoints"]
-        num_keypoints = len(kpt_dict)
+        num_keypoints = len(self.kpt_dict)
 
         # 設置表格行數
         if self.kpt_table.rowCount() < num_keypoints:
@@ -41,7 +43,7 @@ class KeypointTable:
         keypoints_list = person_data["keypoints"].to_list()[0]
         for kpt_idx, kpt in enumerate(keypoints_list):
             kptx, kpty, kpt_label = kpt[0], kpt[1], kpt[3]  # 獲取 x, y, label
-            kpt_name = kpt_dict[kpt_idx]  # 對應的關鍵點名稱
+            kpt_name = self.kpt_dict[kpt_idx]  # 對應的關鍵點名稱
             self.setTableItem(kpt_idx, kpt_name, kptx, kpty, kpt_label)
 
 
@@ -74,7 +76,7 @@ class KeypointTable:
         print("row:"+str(row))
         self.correct_kpt_idx = row
         self.label_kpt = True
-        
+
     def sendToTable(self, kptx: float, kpty: float, kpt_label: int, frame_num: int):
         """Send corrected keypoint data back to the table and update the pose estimator."""
         self.setTableItem(self.correct_kpt_idx, "", kptx, kpty, kpt_label)

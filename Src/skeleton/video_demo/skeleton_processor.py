@@ -4,8 +4,8 @@ import numpy as np
 from scipy.signal import savgol_filter
 from mmpose.structures import (PoseDataSample)
 from mmpose.apis import (convert_keypoint_definition)
-from ..lib import OneEuroFilterTorch
-from ..datasets import halpe26_keypoint_info, posetrack_keypoint_info
+from ..utils import OneEuroFilterTorch
+from ..datasets import halpe26_keypoint_info, posetrack_keypoint_info, halpe26_to_posetrack_keypoint_info
 
 
 def filter_valid_targets(online_targets, select_id: int = None):
@@ -55,25 +55,37 @@ def coco2posetrack(keypoint):
     x_mhead = (keypoint[1][0] + keypoint[2][0]) / 2.0
     y_mhead = (keypoint[1][1] + keypoint[2][1]) / 2.0
     s_mhead = (keypoint[1][2] + keypoint[2][2]) / 2.0
-    x_msho = (keypoint[5][0] + keypoint[6][0]) / 2.0
-    y_msho = (keypoint[5][1] + keypoint[6][1]) / 2.0
-    s_msho = (keypoint[5][2] + keypoint[6][2]) / 2.0
     x_butt = (keypoint[11][0] + keypoint[12][0]) / 2.0
     y_butt = (keypoint[11][1] + keypoint[12][1]) / 2.0
     s_butt = (keypoint[11][2] + keypoint[12][2]) / 2.0
     data[17] = [x_mhead, y_mhead, s_mhead, False]
-    data[18] = [x_msho, y_msho, s_msho, False]
-    data[19] = [x_butt, y_butt, s_butt, False]
+    data[18] = [x_butt, y_butt, s_butt, False]
     return data
+
+def haple2posetrack(keypoint):
+    # print(keypoint)
+    # exit()
+    data = np.zeros((len(posetrack_keypoint_info['keypoints']), 4))
+    data[4:18] = keypoint[4:18]
+    for src_i, dst_i in halpe26_to_posetrack_keypoint_info['keypoints'].items():
+        data[dst_i] = keypoint[src_i]
+        data[dst_i][3] = False
+    x_mhead = (data[1][0] + data[2][0]) / 2.0
+    y_mhead = (data[1][1] + data[2][1]) / 2.0
+    s_mhead = (data[1][2] + data[2][2]) / 2.0
+    data[3] = [ x_mhead, y_mhead, s_mhead, False]
+    return data
+
+
+
+
+
 
 def merge_person_data(pred_instances, track_ids: list, model_name:str, frame_num: int = None) -> pl.DataFrame:
     person_bboxes = pred_instances['bboxes']
 
     # 優化：提前創建列表，避免多次 append 操作
     new_person_data = []
-
-    # 預先準備一些常用資料結構，減少重複創建
-    halpe26_shape = len(halpe26_keypoint_info['keypoints'])
 
     for person, pid, bbox in zip(pred_instances, track_ids, person_bboxes):
         keypoints_data = np.hstack((
@@ -84,8 +96,9 @@ def merge_person_data(pred_instances, track_ids: list, model_name:str, frame_num
 
         # 選擇模型類型進行處理
         if model_name == "vit-pose":
-            new_kpts = np.full((halpe26_shape, keypoints_data.shape[1]), 0.9)
-            new_kpts[:26] = keypoints_data
+            new_kpts = haple2posetrack(keypoints_data)
+            # new_kpts = np.full((halpe26_shape, keypoints_data.shape[1]), 0.9)
+            # new_kpts[] = keypoints_data
         else:
             new_kpts = coco2posetrack(keypoints_data)
         new_kpts = new_kpts.tolist()
@@ -265,7 +278,7 @@ def update_pose_results(new_person_df: pl.DataFrame, pred_instances, track_ids: 
         # smoothed_keypoints = smoothed_keypoints.reshape(-1, 26)
         smoothed_keypoints = np.array([kp[:2] for kp in keypoints_list])
         # 更新到 pose_results 的 pred_instances 中
-        smoothed_keypoints = smoothed_keypoints[:17] if len(smoothed_keypoints) == 20 else smoothed_keypoints
+        smoothed_keypoints = smoothed_keypoints[:17] if len(smoothed_keypoints) == 19 else smoothed_keypoints
         smoothed_keypoints_tensor = torch.tensor(smoothed_keypoints, dtype=torch.float64)
         for pred_instance in pred_instances:
             # if pred_instance['track_id'] == track_id:  # 確保是正確的 track_id

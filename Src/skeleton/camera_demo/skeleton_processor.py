@@ -4,7 +4,7 @@ import numpy as np
 from scipy.signal import savgol_filter
 from mmpose.structures import (PoseDataSample)
 from mmpose.apis import (convert_keypoint_definition)
-from ..lib import OneEuroFilterTorch
+from ..utils import OneEuroFilterTorch
 from ..datasets import halpe26_keypoint_info, posetrack_keypoint_info
 
 

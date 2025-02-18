@@ -8,7 +8,7 @@ from mmpose.structures import (PoseDataSample, merge_data_samples,
 from mmpose.apis import (convert_keypoint_definition, extract_pose_sequence,
                          inference_pose_lifter_model, inference_topdown)
 from .skeleton_processor import *
-from ..lib import (FPSTimer, OneEuroFilter)
+from ..utils import (FPSTimer, OneEuroFilter)
 from torch.profiler import profile, ProfilerActivity
 import logging
 try:
@@ -32,15 +32,15 @@ class PoseLifter(object):
         self._pitch_hand_id = 10
         self.processed_frames = set()
         self.fps_timer = FPSTimer()
-       
+
         self.kpt_buffer = []
-  
+
     def detect_keypoints(self, image:np.ndarray, frame_num:int = None):
         if not self._is_detect:
             return 0
         fps = 0
         self.fps_timer.tic()
-        
+
         if frame_num not in self.processed_frames:
             if frame_num % 3 == 0:
                 # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
@@ -80,11 +80,11 @@ class PoseLifter(object):
             new_person_df = merge_3d_data(new_person_df, pred_3d_pred_instances, track_ids)
             self._person_df = new_person_df  if self._person_df.is_empty() else pl.concat([self._person_df, new_person_df])
             self.processed_frames.add(frame_num)
-            
+
 
         if self._joint_id is not None:
             self.kpt_buffer = update_keypoint_buffer(self.person_df, self._track_id, self._joint_id, frame_num)
-        
+
         self.fps_timer.toc()
         return  int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0
 
@@ -111,7 +111,7 @@ class PoseLifter(object):
         if value != self._joint_id:
             self._joint_id = value
             self.logger.info(f"當前關節點: {self._joint_id}")
-    
+
     @property
     def pitch_hand_id(self):
         """獲取當前追蹤的 joint_id。"""
@@ -139,7 +139,7 @@ class PoseLifter(object):
     @property
     def person_df(self):
         return self._person_df
-    
+
     @person_df.setter
     def person_df(self, load_df:pl.DataFrame):
         if load_df.is_empty():
@@ -168,21 +168,21 @@ class PoseLifter(object):
 
         if is_kpt:
             data = data["keypoints"].to_list()[0]  # 獲取第一個值
-            
+
         return data
 
     def update_person_df(self, x: float, y: float, frame_num: int, correct_kpt_idx: int):
         if self._person_df is None or self._person_df.is_empty():
             return  # 防止空 DataFrame 出錯
         update_keypoint = self._person_df.filter(
-            (pl.col("frame_number") == frame_num) & 
+            (pl.col("frame_number") == frame_num) &
             (pl.col("track_id") == self._track_id)
-        )["keypoints"][0].to_list() 
+        )["keypoints"][0].to_list()
         update_keypoint[correct_kpt_idx] = [x, y] + update_keypoint[correct_kpt_idx][2:]
 
         self._person_df = self._person_df.with_columns(
             pl.when(
-                (pl.col("frame_number") == frame_num) & 
+                (pl.col("frame_number") == frame_num) &
                 (pl.col("track_id") == self._track_id)
             )
             .then(

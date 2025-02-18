@@ -66,12 +66,12 @@ class ImageDrawer():
             image = self.draw_bbox(image, curr_person_df)
 
         if self.show_skeleton:
-            if self.pose_estimater.model_name == "vit-pose":
-                image = self.draw_points_and_skeleton(image, curr_person_df, halpe26_keypoint_info['skeleton_links'],
-                                                    points_palette_samples=10)
-            else:
-                image = self.draw_points_and_skeleton(image, curr_person_df, posetrack_keypoint_info['skeleton_links'],
-                                                    points_palette_samples=10)
+            # if self.pose_estimater.model_name == "vit-pose":
+            #     image = self.draw_points_and_skeleton(image, curr_person_df, halpe26_keypoint_info['skeleton_links'],
+            #                                         points_palette_samples=10)
+            # else:
+            image = self.draw_points_and_skeleton(image, curr_person_df, posetrack_keypoint_info['skeleton_links'],
+                                                points_palette_samples=10)
 
         if self.show_traj:
             image = self.draw_traj(image, kpt_buffer)
@@ -248,12 +248,9 @@ class ImageDrawer():
                 np.array(plt.get_cmap(color_palette)(np.linspace(0, 1, palette_samples))) * 255
             ).astype(np.uint8)[:, -2::-1].tolist()
 
-        if self.pose_estimater.model_name == "vit-pose":
-            right_skeleton = halpe26_keypoint_info['right_points_indices']
-            left_skeleton = halpe26_keypoint_info['left_points_indices']
-        else:
-            right_skeleton = posetrack_keypoint_info['right_points_indices']
-            left_skeleton = posetrack_keypoint_info['left_points_indices']
+
+        right_skeleton = posetrack_keypoint_info['right_points_indices']
+        left_skeleton = posetrack_keypoint_info['left_points_indices']
 
         for i, joint in enumerate(skeleton):
             pt1, pt2 = points[joint]

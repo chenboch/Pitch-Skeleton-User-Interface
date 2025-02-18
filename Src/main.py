@@ -16,7 +16,7 @@ class Main(QMainWindow):
         super(Main, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.wrapper = Wrapper(track_model="ByteTracker", pose_model="vit-pose")
+        self.wrapper = Wrapper(track_model="ByteTracker", pose_model="vi-pose")
         self.init_tabs()
 
     def init_tabs(self):

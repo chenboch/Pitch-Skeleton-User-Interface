@@ -1,6 +1,6 @@
 from UI_Control.BaseTab import BasePoseVideoTab
 from UI_Control.ui_utils import KeypointTable
-from skeleton import VidePose3DEstimaterBeta
+from skeleton import VidePose3DEstimater
 from .video_ui import Ui_video_widget
 from .canvas3d_widget import Canvas3DView
 
@@ -54,12 +54,15 @@ class PoseVideoTabControl(BasePoseVideoTab):
 
     def setup_pose_estimater(self):
         """Setup 2D pose estimator."""
-        self.pose_estimater = VidePose3DEstimaterBeta(self.wrapper)
+        self.pose_estimater = VidePose3DEstimater(self.wrapper)
 
-    def key_press_event(self, event):
-        if event.key() == ord('D') or event.key() == ord('d'):
+
+    def keyPressEvent(self, event):
+        key = event.text().lower()  # 用 event.text() 抓字元
+        if key == 'd':
             self.ui.frame_slider.setValue(self.ui.frame_slider.value() + 1)
-        elif event.key() == ord('A') or event.key() == ord('a'):
+        elif key == 'a':
             self.ui.frame_slider.setValue(self.ui.frame_slider.value() - 1)
         else:
-            super().key_press_event(event)
+            super().keyPressEvent(event)
+

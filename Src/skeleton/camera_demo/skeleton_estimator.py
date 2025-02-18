@@ -1,7 +1,7 @@
 import numpy as np
 from skeleton.model.wrapper import Wrapper
 from .skeleton_processor import *
-from skeleton.lib import FPSTimer
+from skeleton.utils import FPSTimer
 import logging
 import queue
 from torch.profiler import profile, ProfilerActivity

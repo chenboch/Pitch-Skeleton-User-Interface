@@ -3,7 +3,7 @@ import polars as pl
 from ..model.wrapper import Wrapper
 import queue
 from .skeleton_processor import *
-from ..lib import FPSTimer
+from ..utils import FPSTimer
 from torch.profiler import profile, ProfilerActivity
 import logging
 
