@@ -14,9 +14,7 @@ from vispy.color import Color
 import polars as pl
 from vispy.scene.visuals import XYZAxis
 
-CANVAS_SIZE = (1080, 1920)  # (width, height)
-
-
+# CANVAS_SIZE = (1920, 300)  # (width, height)
 
 class Canvas3DView(QWidget):
     def __init__(self, parent = None):
@@ -25,7 +23,7 @@ class Canvas3DView(QWidget):
         # self.ui.setupUi(self)
         self.lines_plot = []
         self.canvas = scene.SceneCanvas(
-            keys="interactive", show=True, size=CANVAS_SIZE, bgcolor=Color("#F2F2F2", alpha=0.1))
+            keys="interactive", show=True, bgcolor=Color("#F2F2F2", alpha=0.1))
         self.view = self.canvas.central_widget.add_view()  # 添加视图
         # setting camera
          # **關鍵！將 VisPy 畫布加到 QWidget 的 Layout**
@@ -34,7 +32,7 @@ class Canvas3DView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         self.view.camera = scene.TurntableCamera(
-            elevation=0, azimuth=0, roll=0, up="+z", distance=1000,translate_speed=100,
+            elevation=0, azimuth=0, roll=0, up="+z", distance=100,translate_speed=100,
         )
         self.plane = self.set_floor_plane()
         self.set_lines_plot()
@@ -146,11 +144,11 @@ class Canvas3DView(QWidget):
             limb_pos = []
             color = 'red'
             if line in coco_keypoint_info["right_limb"]:
-                color = 'red'
-            elif line in coco_keypoint_info["left_limb"]:
                 color = 'blue'
+            elif line in coco_keypoint_info["left_limb"]:
+                color = 'red'
             else:
-                color = 'green'
+                color = 'orange'
 
             for point in line:
                 limb_pos.append(pos[point])

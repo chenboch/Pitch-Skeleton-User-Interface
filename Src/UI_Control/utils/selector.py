@@ -11,13 +11,13 @@ class PersonSelector:
         if search_person_df.is_empty():
             return
         if not (x == 0 and y == 0):
-            print(f"{x}, {y}")
+            # print(f"{x}, {y}")
             search_person_df = search_person_df.filter(
-                    (pl.col('bbox').list.get(0) <= x) & 
+                    (pl.col('bbox').list.get(0) <= x) &
                     (pl.col('bbox').list.get(1) <= y) &
                     (pl.col('bbox').list.get(0) + pl.col('bbox').list.get(2) >= x ) &
                     (pl.col('bbox').list.get(3) + pl.col('bbox').list.get(1) >= y )
-                
+
             )
         search_person_df = search_person_df.sort('area',descending = True)
         self.selected_id = search_person_df["track_id"][0]
@@ -25,14 +25,14 @@ class PersonSelector:
     @property
     def selected_id(self):
         return self._selected_id
-    
+
     @selected_id.setter
     def selected_id(self, value):
         self._selected_id = value
 
     def reset(self):
         self.selected_id = None
-        
+
 class KptSelector:
     def __init__(self):
         self.selected_id = None
@@ -57,7 +57,7 @@ class KptSelector:
             for kpt_id, kpt in enumerate(keypoints):
                 if len(kpt) < 2:  # 確保關鍵點座標存在
                     continue
-                
+
                 kpt_x, kpt_y = map(int, kpt[:2])  # 只取前兩個座標
                 distance = calculate_distance(kpt_x, kpt_y)
 

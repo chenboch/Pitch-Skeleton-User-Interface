@@ -150,7 +150,7 @@ class PoseEstimater(object):
 
         data = self._person_df.filter(condition)
         if data.is_empty():
-            return None
+            return pl.DataFrame([])
 
         if is_kpt:
             data = data["keypoints"].to_list()[0]  # 獲取第一個值

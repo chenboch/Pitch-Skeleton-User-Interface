@@ -1,8 +1,10 @@
 import sys
+import PyQt5.QtOpenGL  # 這一行最關鍵
+from vispy import scene
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout
 # from UI_Control.Pose2DTab.Camera_Widget.camera_widget import PoseCameraTabControl
 from UI_Control.Pose2DTab.Video_Widget.video_widget import PoseVideoTabControl as Pose2DVideoTabControl
-# from UI_Control.Pose2DTab.Pitch_Widget.pitch_widget import PosePitchTabControl
+# # from UI_Control.Pose2DTab.Pitch_Widget.pitch_widget import PosePitchTabControl
 from UI_Control.Pose3DTab.Video_Widget.video_widget import PoseVideoTabControl as Pose3DVideoTabControl
 from UI_Control.Main_UI.main_window import Ui_MainWindow
 from skeleton.model.wrapper import Wrapper
@@ -16,7 +18,8 @@ class Main(QMainWindow):
         super(Main, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.wrapper = Wrapper(track_model="ByteTracker", pose_model="vi-pose")
+        # setting camera
+        self.wrapper = Wrapper(track_model="ByteTracker", pose_model="vit-pose")
         self.init_tabs()
 
     def init_tabs(self):

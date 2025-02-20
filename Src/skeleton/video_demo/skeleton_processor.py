@@ -76,11 +76,6 @@ def haple2posetrack(keypoint):
     data[3] = [ x_mhead, y_mhead, s_mhead, False]
     return data
 
-
-
-
-
-
 def merge_person_data(pred_instances, track_ids: list, model_name:str, frame_num: int = None) -> pl.DataFrame:
     person_bboxes = pred_instances['bboxes']
 
@@ -273,16 +268,15 @@ def update_pose_results(new_person_df: pl.DataFrame, pred_instances, track_ids: 
             continue
 
         # 提取平滑後的關鍵點
-        # smoothed_keypoints = np.array(person_data.select('keypoints')[0, 0])[:, :2]
         keypoints_list = person_data.select('keypoints').to_numpy()[0][0]
-        # smoothed_keypoints = smoothed_keypoints.reshape(-1, 26)
         smoothed_keypoints = np.array([kp[:2] for kp in keypoints_list])
         # 更新到 pose_results 的 pred_instances 中
-        smoothed_keypoints = smoothed_keypoints[:17] if len(smoothed_keypoints) == 19 else smoothed_keypoints
+        smoothed_keypoints = smoothed_keypoints[:17]
         smoothed_keypoints_tensor = torch.tensor(smoothed_keypoints, dtype=torch.float64)
+
         for pred_instance in pred_instances:
-            # if pred_instance['track_id'] == track_id:  # 確保是正確的 track_id
-            pred_instance['keypoints'][0] = smoothed_keypoints_tensor
+            # pred_instance['keypoints'][0] = smoothed_keypoints_tensor.clone()
+            pred_instance['keypoints'][0][:17] = smoothed_keypoints_tensor
     return pred_instances
 
 def extract_3d_data(data_3d_samples, track_ids):

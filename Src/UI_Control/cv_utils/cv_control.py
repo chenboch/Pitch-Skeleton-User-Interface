@@ -153,7 +153,7 @@ class VideoLoader:
         formatted_path = ""
         fm_path = ""
         # output_folder = os.path.join("../Db/Record", formatted_path+"_"+self.video_name)
-        # ann_folder = os.path.join("../Db/Data/annotations/train")
+        ann_folder = os.path.join("../Db/Data/annotations/train")
         # img_folder = os.path.join("../Db/Data/images", formatted_path+"_"+self.video_name)
         output_folder = os.path.join("../Db/output", self.video_name)
         ann_folder = os.path.join("../Db/Data/annotations/train")
@@ -166,12 +166,12 @@ class VideoLoader:
         json_path = os.path.join(output_folder, f"{self.video_name}_Sk17.json")
         if model_name == "vit-pose":
             json_path = os.path.join(output_folder, f"{self.video_name}_Sk26.json")
-        json_ann_path =  os.path.join(ann_folder, f"{fm_path}_{self.video_name}.json")
+        json_ann_path =  os.path.join(ann_folder, f"{self.video_name}.json")
         save_person_df = self.image_drawer.pose_estimater.person_df
 
         save_person_df.write_json(json_path)
 
-        # save_person_df.write_json(json_ann_path)
+        save_person_df.write_json(json_ann_path)
 
         # save_location = os.path.join(output_folder, f"{formatted_path}_{self.video_name}.mp4")
         save_location = os.path.join(output_folder, f"{self.video_name}.mp4")

@@ -8,14 +8,13 @@ from torch.profiler import profile, ProfilerActivity
 import logging
 
 class PoseLifter(object):
-    def __init__(self, wrapper: Wrapper =None,  model_name: str = "vi-pose"):
+    def __init__(self, wrapper: Wrapper =None):
         self.logger = logging.getLogger(self.__class__.__name__)  # 獲取當前類的日誌對象
         self.logger.info("PoseLifter initialized with wrapper.")
         self.detector = wrapper.detector
         self.tracker = wrapper.tracker
         self.pose2d_estimator = wrapper.pose2d_estimator
-        self.pose2d_estimator.model_name = model_name
-        self._model_name = model_name
+        self._model_name =  self.pose2d_estimator.model_name
         self.pose3d_estimator = wrapper.pose3d_estimator
         self._person_df = pl.DataFrame()
         self._track_id = None
@@ -52,18 +51,16 @@ class PoseLifter(object):
                 self.processed_frames.add(frame_num)
                 self.fps_timer.toc()
                 return  int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0
+
             pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox, frame_num)
             new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name,frame_num)
             new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids)
-            # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
+            # print(new_person_df['keypoints'])
+            # print(len(new_person_df["keypoints"][0]))
+            # exit()
             pose_results = update_pose_results(new_person_df, pred_instances, track_ids)
             pose_results.track_id = torch.from_numpy(np.array(track_ids))
-            # with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-            # self.fps_timer.tic()
             pred_3d_pred_instances = self.pose3d_estimator.process_pose3d(pose_results, track_ids, image.shape)
-            # self.fps_timer.toc()
-            # print(f"pose3d time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
-            # print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=10))
             new_person_df = merge_3d_data(new_person_df, pred_3d_pred_instances, track_ids)
             self._person_df = new_person_df  if self._person_df.is_empty() else pl.concat([self._person_df, new_person_df])
             self.processed_frames.add(frame_num)
@@ -147,7 +144,7 @@ class PoseLifter(object):
         self.processed_frames = {frame_num for frame_num in self._person_df['frame_number']}
         self.logger.info("讀取資料的狀態: %s", not load_df.is_empty())
 
-    def get_person_df(self, frame_num=None, is_select=False, is_kpt=False) ->pl.DataFrame:
+    def get_person_df(self, frame_num=None, is_select=False, is_kpt=False, is_kpt3d = False) ->pl.DataFrame:
         if self._person_df.is_empty():
             return pl.DataFrame([])
 
@@ -165,6 +162,10 @@ class PoseLifter(object):
 
         if is_kpt:
             data = data["keypoints"].to_list()[0]  # 獲取第一個值
+        elif is_kpt3d:
+            data = data["keypoints_3d"].to_list()[0]  # 獲取第一個值
+
+        return data
 
         return data
 

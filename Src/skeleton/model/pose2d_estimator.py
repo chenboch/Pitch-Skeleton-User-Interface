@@ -37,6 +37,8 @@ class Pose2DEstimator(object):
         if self._model_name == "vit-pose":
             image = image_array[-1]
             pose_results = vitpose_inference_topdown(self.pose2d_estimator, image, bbox)
+            # print(pose_results)
+            # exit()
             data_samples = merge_data_samples(pose_results)
             return data_samples.get('pred_instances', None)
 
@@ -90,7 +92,7 @@ class Pose2DEstimator(object):
         parser.add_argument('--PE_Name', help='pose estimation model name', required=False, type=str,
                             default='DSTA')
         parser.add_argument('-weight', help='model weight file', required=False, type=str
-                            , default='Db/checkpoints/epoch_190_state.pth')
+                            , default='Db/checkpoints/epoch_194_state.pth')
         parser.add_argument('--gpu_id', default='0')
         parser.add_argument('opts', help="Modify config options using the command-line", default=None, nargs=REMAINDER)
 
