@@ -188,7 +188,7 @@ class DSTA_STD_ResNet50(BaseModel):
         self.is_train = True if phase == TRAIN_PHASE else False
         self.freeze_hrnet_weights = cfg.MODEL.FREEZE_HRNET_WEIGHTS
         self.num_joints = cfg.MODEL.NUM_JOINTS
-        self.preact = ResNet('resnet50')
+        self.preact = ResNet('resnet152')
 
         self.pretrained = cfg.MODEL.PRETRAINED
         self.embed_dim_ratio = 32
@@ -244,7 +244,7 @@ class DSTA_STD_ResNet50(BaseModel):
         feat_S = feat_S + self.Spatial_pos_embed
         feat_S = rearrange(feat_S, 'b g n c -> (b g) n c')
         for blk in self.Spatial_blocks:
-            feat_S = blk(feat_S)  
+            feat_S = blk(feat_S)
         feat_S = self.Spatial_norm(feat_S)
         feat_S = rearrange(feat_S, '(b g) n c  -> b g n c', g=5)
         feat_S = rearrange(feat_S, 'b g n c ->b (g n) c')

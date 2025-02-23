@@ -32,8 +32,9 @@ class Canvas3DView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         self.view.camera = scene.TurntableCamera(
-            elevation=0, azimuth=0, roll=0, up="+z", distance=100,translate_speed=100,
+            elevation=0, azimuth=0, roll=0, up="+z", distance=10,translate_speed=100,
         )
+        self.axis = XYZAxis(parent=self.view.scene)
         self.plane = self.set_floor_plane()
         self.set_lines_plot()
         self.cx = 0
@@ -42,12 +43,12 @@ class Canvas3DView(QWidget):
 
     def set_floor_plane(
         self,
-        XL=12,
-        YL=12,
-        WS=10,
-        HS=8,
+        XL=6,
+        YL=6,
+        WS=6,
+        HS=6,
         D="+z",
-        # translate=(3, 4, 2),
+        translate=(0, -1, -1),
         # scale=(1.0, 1.0, 1.0),
     ):
         vertices, faces, outline = geometry.create_plane(
@@ -67,7 +68,9 @@ class Canvas3DView(QWidget):
                 color="white", alpha=None, clip=False),
             parent=self.view.scene,
         )
-        plane.transform = transforms.STTransform()
+        plane.transform = transforms.STTransform(
+            translate= translate
+        )
             # translate=translate, scale=scale)
 
         return plane
@@ -77,9 +80,9 @@ class Canvas3DView(QWidget):
         w, h = image_size
         # 更新中心點座標
         data[...,0] = - data[...,0]
-        data[...,0] = data[...,0] * 10
-        data[...,1] = data[...,1] * 10
-        data[...,2] = data[...,2] * 10
+        data[...,0] = data[...,0]
+        data[...,1] = data[...,1]
+        data[...,2] = data[...,2]
         w = np.max(data[..., 0]) - np.min(data[..., 0])
         h = np.max(data[..., 1]) - np.min(data[..., 1])
         d = np.max(data[..., 2]) - np.min(data[..., 2])
@@ -133,13 +136,33 @@ class Canvas3DView(QWidget):
     def update_points(self, pos, rfoot=3, lfoot=6):
         pos = np.array(pos)
         pos[:, 0] = -pos[:, 0]
-        pos[:, 0] = pos[:,0] * 10
-        pos[:, 1] = pos[:,1] * 10
-        pos[:, 2] = pos[:,2] * 10
+        # pos[:, 1] -= 1  # 向下移動 y
+        # pos[:, 2] -= 1  # 向下移動 z
+        pos[:, 0] *= 5
+        pos[:, 1] *= 5 # 向下移動 y
+        pos[:, 2] *= 5  # 向下移動 z
+        # pos[:, 1] -= 1  # 向下移動 y
+        pos[:, 2] -= 1 # 向下移動 z
 
-        # 創建 XYZ 軸
-        axis = XYZAxis(parent=self.view.scene)
+        # 計算新的中心點
+        cx = np.mean(pos[:, 0])  # X 軸中心
+        cy = np.mean(pos[:, 1])  # Y 軸中心
+        cz = np.min(pos[:, 2])  # Z 軸中心
 
+        # **正確的刪除舊的 XYZ 軸**
+        if hasattr(self, "axis") and self.axis is not None:
+            self.axis.parent = None  # 這樣才是真正從場景中移除
+
+        # **創建新的 XYZ 軸，並移動到新位置**
+        self.axis = XYZAxis(parent=self.view.scene)
+        self.axis.transform = transforms.STTransform(translate=(cx, cy, cz))
+        self.plane.transform = transforms.STTransform(
+            translate=(cx, cy, cz)
+        )
+
+        # print(f"Moving XYZ axis to: ({cx}, {cy}, {cz})")
+
+        # **畫骨架線**
         for idx, line in enumerate(coco_keypoint_info["skeleton_links"]):
             limb_pos = []
             color = 'red'
@@ -163,6 +186,7 @@ class Canvas3DView(QWidget):
                 symbol="x",
                 face_color=(0.2, 0.2, 1, 0.8),
             )
+
 
 
 if __name__ == "__main__":

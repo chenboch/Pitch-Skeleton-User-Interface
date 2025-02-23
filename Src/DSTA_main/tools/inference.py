@@ -42,7 +42,7 @@ def init_pose_model(args:argparse.ArgumentParser):
 # model = model.cuda()
 image_transforms = build_transforms(None, INFERENCE_PHASE)
 image_size = np.array([192, 256])
-aspect_ratio = image_size[0] * 1.0 / image_size[1]
+aspect_ratio = image_size[0] / image_size[1]
 
 def image_preprocess(image_data: np.ndarray, center, scale, frame_num):
     # output_folder = os.path.join("../Db/bbox")

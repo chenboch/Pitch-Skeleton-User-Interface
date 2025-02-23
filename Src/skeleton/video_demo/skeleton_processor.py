@@ -52,6 +52,10 @@ def coco2posetrack(keypoint):
     data = np.zeros((len(posetrack_keypoint_info['keypoints']), 4))
     data[:17] = keypoint
     # 計算中點並填充數據
+    # x_chest = (keypoint[5][0] + keypoint[6][0]) / 2.0
+    # y_chest = (keypoint[5][1] + keypoint[6][1]) / 2.0
+    # s_chest = (keypoint[5][2] + keypoint[6][2]) / 2.0
+    # data[1] = [x_chest, y_chest, s_chest, False]
     x_mhead = (keypoint[1][0] + keypoint[2][0]) / 2.0
     y_mhead = (keypoint[1][1] + keypoint[2][1]) / 2.0
     s_mhead = (keypoint[1][2] + keypoint[2][2]) / 2.0
@@ -70,10 +74,10 @@ def haple2posetrack(keypoint):
     for src_i, dst_i in halpe26_to_posetrack_keypoint_info['keypoints'].items():
         data[dst_i] = keypoint[src_i]
         data[dst_i][3] = False
-    x_mhead = (data[1][0] + data[2][0]) / 2.0
-    y_mhead = (data[1][1] + data[2][1]) / 2.0
-    s_mhead = (data[1][2] + data[2][2]) / 2.0
-    data[3] = [ x_mhead, y_mhead, s_mhead, False]
+    x_mhead = (keypoint[17][0] + keypoint[18][0]) / 2.0
+    y_mhead = (keypoint[17][1] + keypoint[18][1]) / 2.0
+    s_mhead = (keypoint[17][2] + keypoint[18][2]) / 2.0
+    data[17] = [ x_mhead, y_mhead, s_mhead, False]
     return data
 
 def merge_person_data(pred_instances, track_ids: list, model_name:str, frame_num: int = None) -> pl.DataFrame:
@@ -182,7 +186,7 @@ def smooth_keypoints(person_df: pl.DataFrame, new_person_df: pl.DataFrame, track
 
     return new_person_df
 
-def update_keypoint_buffer(person_df:pl.DataFrame, track_id:int, kpt_id: int,frame_num:int, window_length=5, polyorder=2)->list:
+def update_keypoint_buffer(person_df:pl.DataFrame, track_id:int, kpt_id: int,frame_num:int, window_length=1, polyorder=2)->list:
 
     filtered_df = person_df.filter(
         (person_df['track_id'] == track_id) &
@@ -276,7 +280,7 @@ def update_pose_results(new_person_df: pl.DataFrame, pred_instances, track_ids: 
 
         for pred_instance in pred_instances:
             # pred_instance['keypoints'][0] = smoothed_keypoints_tensor.clone()
-            pred_instance['keypoints'][0][:17] = smoothed_keypoints_tensor
+              pred_instance['keypoints'][0][:17] = smoothed_keypoints_tensor
     return pred_instances
 
 def extract_3d_data(data_3d_samples, track_ids):

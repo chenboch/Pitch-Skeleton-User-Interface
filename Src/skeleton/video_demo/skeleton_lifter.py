@@ -54,7 +54,7 @@ class PoseLifter(object):
 
             pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox, frame_num)
             new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name,frame_num)
-            new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids)
+            # new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids)
             # print(new_person_df['keypoints'])
             # print(len(new_person_df["keypoints"][0]))
             # exit()

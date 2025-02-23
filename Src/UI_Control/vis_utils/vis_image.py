@@ -174,7 +174,7 @@ class ImageDrawer():
 
         return img
 
-    def draw_points(self, image, points, track_idx, color_palette='gist_rainbow', palette_samples=10, confidence_threshold=0.3):
+    def draw_points(self, image, points, track_idx, color_palette='gist_rainbow', palette_samples=10, confidence_threshold=0.0):
         """
         Draws `points` on `image`.
 
@@ -206,15 +206,15 @@ class ImageDrawer():
         circle_size = max(1, min(image.shape[:2]) // 160)  # ToDo Shape it taking into account the size of the detection
         # circle_size = max(2, int(np.sqrt(np.max(np.max(points, axis=0) - np.min(points, axis=0)) // 16)))
         for i, pt in enumerate(points):
-
+            if i==3 or i==4: continue
             unlabel = False if pt[0] != 0 and pt[1] != 0 else True
-            # if pt[2] > confidence_threshold and not unlabel:
-            image = cv2.circle(image, (int(pt[1]), int(pt[ 0])), circle_size, tuple(colors[track_idx % len(colors)]), -1)
+            if pt[2] > confidence_threshold and not unlabel:
+                image = cv2.circle(image, (int(pt[1]), int(pt[ 0])), circle_size, tuple(colors[track_idx % len(colors)]), -1)
 
         return image
 
     def draw_skeleton(self, image, points, skeleton, color_palette='Set2', palette_samples='jet', person_index=0,
-                    confidence_threshold=0.3):
+                    confidence_threshold=0.0):
         """
         Draws a `skeleton` on `image`.
 
@@ -262,11 +262,11 @@ class ImageDrawer():
                 skeleton_color = (240, 176, 0)
             elif joint in left_skeleton:
                 skeleton_color = (0, 0, 255)
-            # if pt1[2] > confidence_threshold and not pt1_unlabel and pt2[2] > confidence_threshold and not pt2_unlabel:
-            image = cv2.line(
-                image, (int(pt1[1]), int(pt1[0])), (int(pt2[1]), int(pt2[0])),
-                skeleton_color , 6
-            )
+            if pt1[2] > confidence_threshold and not pt1_unlabel and pt2[2] > confidence_threshold and not pt2_unlabel:
+                image = cv2.line(
+                    image, (int(pt1[1]), int(pt1[0])), (int(pt2[1]), int(pt2[0])),
+                    skeleton_color , 6
+                )
         return image
 
     def draw_points_and_skeleton(self, image, person_df, skeleton, points_color_palette='gist_rainbow', points_palette_samples=10,

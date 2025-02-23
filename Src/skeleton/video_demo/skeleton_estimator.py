@@ -53,8 +53,11 @@ class PoseEstimater(object):
                 self.processed_frames.add(frame_num)
                 self.fps_timer.toc()
                 return  int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0
-
+            # self.fps_timer.tic()
             pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox, frame_num)
+            # self.fps_timer.toc()
+            # print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
+
             new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name,frame_num)
             new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids)
             self._person_df = pl.concat([self._person_df, new_person_df])

@@ -37,6 +37,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         self.curve_scene = QGraphicsScene()
         self.setup_components()
         self.init_var()
+        # self.ui.curve_view.setVisible(False)
 
     def init_var(self):
         self.is_play = False
@@ -85,6 +86,7 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
 
         if not view_rect.contains(pos):
             return
+
         search_person_df = self.pose_estimater.get_person_df(frame_num = self.ui.frame_slider.value())
         scene_pos = self.ui.frame_view.mapToScene(pos)
         x, y = scene_pos.x(), scene_pos.y()
@@ -208,8 +210,8 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         self.ui.fps_info_label.setText(f"{fps:02d}")
 
         if self.pose_estimater.track_id is not None:
-            self.pose_analyzer.addAnalyzeInfo(frame_num)
-            self.graph_plotter.updateGraph(frame_num)
+            # self.pose_analyzer.addAnalyzeInfo(frame_num)
+            # self.graph_plotter.updateGraph(frame_num)
             self.kpt_table.importDataToTable(frame_num)
         if frame_num == self.video_loader.total_frames - 1:
             self.video_loader.save_video(self.model_name)

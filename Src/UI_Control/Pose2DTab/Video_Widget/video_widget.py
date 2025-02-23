@@ -13,6 +13,7 @@ class PoseVideoTabControl(BasePoseVideoTab):
         self.bind_ui()
 
     def bind_ui(self):
+        self.ui.curve_view.setVisible(False)
         self.ui.load_original_video_btn.clicked.connect(
             lambda: self.load_video(is_processed=False))
         self.ui.load_processed_video_btn.clicked.connect(

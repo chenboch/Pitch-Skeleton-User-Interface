@@ -5,6 +5,7 @@ from mmpose.structures import (merge_data_samples)
 from mmpose.structures.pose_data_sample import InstanceData
 from DSTA_main.tools import init_pose_model
 from DSTA_main.tools import inference_topdown as dstapose_inference_topdown
+from skeleton.utils import FPSTimer
 import numpy as np
 import torch
 import os
@@ -12,6 +13,7 @@ import os
 class Pose2DEstimator(object):
     def __init__(self, model_name:str = "vit-pose"):
         self._model_name = model_name
+        self.fps_timer = FPSTimer()
         if model_name == "vit-pose":
             self.pose2d_args = self.set_vitpose_parser()
             self.pose2d_estimator = init_model(
@@ -36,7 +38,11 @@ class Pose2DEstimator(object):
         """
         if self._model_name == "vit-pose":
             image = image_array[-1]
+            self.fps_timer.tic()
             pose_results = vitpose_inference_topdown(self.pose2d_estimator, image, bbox)
+            self.fps_timer.toc()
+            print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
+
             # print(pose_results)
             # exit()
             data_samples = merge_data_samples(pose_results)
@@ -92,7 +98,7 @@ class Pose2DEstimator(object):
         parser.add_argument('--PE_Name', help='pose estimation model name', required=False, type=str,
                             default='DSTA')
         parser.add_argument('-weight', help='model weight file', required=False, type=str
-                            , default='Db/checkpoints/epoch_194_state.pth')
+                            , default='Db/checkpoints/epoch_191_state.pth')
         parser.add_argument('--gpu_id', default='0')
         parser.add_argument('opts', help="Modify config options using the command-line", default=None, nargs=REMAINDER)
 

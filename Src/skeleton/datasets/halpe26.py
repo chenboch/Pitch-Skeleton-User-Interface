@@ -51,8 +51,8 @@ halpe26_keypoint_info = {
 halpe26_to_posetrack_keypoint_info = {
     "keypoints": {
         0: 0, # "鼻子"
-        1: 0,#"左眼",
-        2: 0,#"右眼",
+        # 1: 0,#"左眼",
+        # 2: 0,#"右眼",
         # 3: 3,#"左耳",
         # 4: 4,#"右耳",
         # 5: 5,#"左肩",
