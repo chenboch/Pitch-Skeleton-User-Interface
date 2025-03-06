@@ -32,7 +32,7 @@ class Canvas3DView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         self.view.camera = scene.TurntableCamera(
-            elevation=0, azimuth=0, roll=0, up="+z", distance=10,translate_speed=100,
+            elevation=0, azimuth=0, roll=0, up="+z", distance=30,translate_speed=100,
         )
         self.axis = XYZAxis(parent=self.view.scene)
         self.plane = self.set_floor_plane()

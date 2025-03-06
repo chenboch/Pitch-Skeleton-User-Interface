@@ -38,10 +38,10 @@ class Pose2DEstimator(object):
         """
         if self._model_name == "vit-pose":
             image = image_array[-1]
-            self.fps_timer.tic()
+            # self.fps_timer.tic()
             pose_results = vitpose_inference_topdown(self.pose2d_estimator, image, bbox)
-            self.fps_timer.toc()
-            print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
+            # self.fps_timer.toc()
+            # print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
 
             # print(pose_results)
             # exit()
@@ -94,11 +94,11 @@ class Pose2DEstimator(object):
 
         parser.add_argument('--cfg', help='experiment configure file name', required=False, type=str,
                             # Src\DSTA_main\configs\posetimation\DSTA\posetrack17\model_inference_hrnet.yaml
-                            default="Src/DSTA_main/configs/posetimation/DSTA/posetrack17/model_inference_hrnet.yaml")
+                            default="Src/DSTA_main/configs/posetimation/DSTA/posetrack17/model_inference.yaml")
         parser.add_argument('--PE_Name', help='pose estimation model name', required=False, type=str,
                             default='DSTA')
         parser.add_argument('-weight', help='model weight file', required=False, type=str
-                            , default='Db/checkpoints/epoch_191_state.pth')
+                            , default='Db/checkpoints/epoch_49_state.pth')
         parser.add_argument('--gpu_id', default='0')
         parser.add_argument('opts', help="Modify config options using the command-line", default=None, nargs=REMAINDER)
 

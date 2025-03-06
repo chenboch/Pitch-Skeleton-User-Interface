@@ -163,15 +163,15 @@ class VideoLoader:
         os.makedirs(img_folder, exist_ok=True)
         os.makedirs(ann_folder,exist_ok=True)
 
-        json_path = os.path.join(output_folder, f"{self.video_name}_Sk17.json")
+        json_path = os.path.join(output_folder, f"{self.video_name}_dstapose.json")
         if model_name == "vit-pose":
-            json_path = os.path.join(output_folder, f"{self.video_name}_Sk26.json")
+            json_path = os.path.join(output_folder, f"{self.video_name}_vitpose.json")
         json_ann_path =  os.path.join(ann_folder, f"{self.video_name}.json")
         save_person_df = self.image_drawer.pose_estimater.person_df
 
         save_person_df.write_json(json_path)
 
-        save_person_df.write_json(json_ann_path)
+        # save_person_df.write_json(json_ann_path)
 
         # save_location = os.path.join(output_folder, f"{formatted_path}_{self.video_name}.mp4")
         save_location = os.path.join(output_folder, f"{self.video_name}.mp4")
@@ -208,15 +208,16 @@ class VideoLoader:
 
         video_writer.release()
         # save_location = os.path.join(output_folder, f"{formatted_path}_{self.video_name}_Sk26.mp4")
-        save_location = os.path.join(output_folder, f"{self.video_name}_Sk17.mp4")
+        save_location = os.path.join(output_folder, f"{self.video_name}_dstapose.mp4")
         if model_name == "vit-pose":
-            save_location = os.path.join(output_folder, f"{self.video_name}_Sk26.mp4")
+            save_location = os.path.join(output_folder, f"{self.video_name}_vitpose.mp4")
 
-        video_writer = cv2.VideoWriter(save_location, cv2.VideoWriter_fourcc(*'mp4v'), self.video_fps, self.video_size)
+        video_writer = cv2.VideoWriter(save_location, cv2.VideoWriter_fourcc(*'mp4v'), self.video_fps*2, self.video_size)
         for frame_num, frame in enumerate(self.video_frames):
-            img_path =  os.path.join(img_folder, f"{frame_num:08d}.jpg" )
-            cv2.imwrite(img_path, frame)
+            # img_path =  os.path.join(img_folder, f"{frame_num:08d}.jpg" )
+            # cv2.imwrite(img_path, frame)
             image = self.image_drawer.drawInfo(img = frame, frame_num = frame_num)
+            # if frame_num % 2 == 0:
             video_writer.write(image)
 
         video_writer.release()
@@ -242,9 +243,9 @@ class JsonLoader:
     def load_json(self) -> pl.DataFrame:
         if self.folder_path == None or self.file_name == None:
             return
-        json_path = os.path.join(self.folder_path, f"{self.file_name}_Sk17.json")
+        json_path = os.path.join(self.folder_path, f"{self.file_name}_dstapose.json")
         if self.model_name == "vit-pose":
-             json_path = os.path.join(self.folder_path, f"{self.file_name}_Sk26.json")
+             json_path = os.path.join(self.folder_path, f"{self.file_name}_vitpose.json")
         print(json_path)
 
         if not os.path.exists(json_path):

@@ -223,7 +223,6 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         self.show_image(drawed_img, self.view_scene, self.ui.frame_view)
         self.graph_plotter.resize_graph(self.ui.curve_view.width(),self.ui.curve_view.height())
 
-
     def toggle_detect(self):
         self.ui.show_skeleton_checkbox.setChecked(True)
         frame = self.video_loader.get_video_image(0)

@@ -188,7 +188,7 @@ class DSTA_STD_ResNet50(BaseModel):
         self.is_train = True if phase == TRAIN_PHASE else False
         self.freeze_hrnet_weights = cfg.MODEL.FREEZE_HRNET_WEIGHTS
         self.num_joints = cfg.MODEL.NUM_JOINTS
-        self.preact = ResNet('resnet152')
+        self.preact = ResNet('resnet50')
 
         self.pretrained = cfg.MODEL.PRETRAINED
         self.embed_dim_ratio = 32

@@ -41,6 +41,7 @@ def init_pose_model(args:argparse.ArgumentParser):
 # model = get_inference_model()
 # model = model.cuda()
 image_transforms = build_transforms(None, INFERENCE_PHASE)
+# image_size = np.array([288, 384])
 image_size = np.array([192, 256])
 aspect_ratio = image_size[0] / image_size[1]
 
@@ -67,27 +68,54 @@ def inference_topdown(model, image_list: np.ndarray, person_data, frame_num :int
     centers = []
     scales = []
     # For each track_id, process the bounding boxes and images
+    # for track_id in range(batch_size):
+    #     bbox = person_data[track_id]
+    #     pprev_idx = min(0, len(image_list) -1)
+    #     prev_idx = min(1, len(image_list) - 1)
+    #     cur_idx = min(2, len(image_list) - 1)
+
+    #     center, scale = box2cs(bbox, aspect_ratio)
+    #     # scale = scale * 1.5
+    #     centers.append(center)
+    #     scales.append(scale)
+
+    #     pprev_image_data  = image_preprocess(image_list[pprev_idx], center, scale,frame_num)
+    #     prev_image_data   = image_preprocess(image_list[prev_idx], center, scale, frame_num)
+    #     target_image_data = image_preprocess(image_list[cur_idx], center, scale, frame_num)
+
+    #     # Add the preprocessed images to the list
+    #     pprev_image_data = pprev_image_data.unsqueeze(0)
+    #     prev_image_data = prev_image_data.unsqueeze(0)
+    #     target_image_data = target_image_data.unsqueeze(0)
+    #     concat_input = torch.cat((pprev_image_data, prev_image_data, target_image_data), 1).cuda()
+    #     concat_input_list.append(concat_input)
+
     for track_id in range(batch_size):
         bbox = person_data[track_id]
-        pprev_idx = min(0, len(image_list) -1)
-        prev_idx = min(1, len(image_list) - 1)
-        cur_idx = min(2, len(image_list) - 1)
+        prev_idx  = min(0, len(image_list) -1)
+        cur_idx = min(1, len(image_list) - 1)
+        next_idx  = min(2, len(image_list) - 1)
 
         center, scale = box2cs(bbox, aspect_ratio)
         # scale = scale * 1.5
         centers.append(center)
         scales.append(scale)
 
-        pprev_image_data  = image_preprocess(image_list[pprev_idx], center, scale,frame_num)
+        # pprev_image_data  = image_preprocess(image_list[pprev_idx], center, scale,frame_num)
+        # prev_image_data   = image_preprocess(image_list[prev_idx], center, scale, frame_num)
+        # target_image_data = image_preprocess(image_list[cur_idx], center, scale, frame_num)
+
+        next_image_data  = image_preprocess(image_list[next_idx], center, scale,frame_num)
         prev_image_data   = image_preprocess(image_list[prev_idx], center, scale, frame_num)
         target_image_data = image_preprocess(image_list[cur_idx], center, scale, frame_num)
 
         # Add the preprocessed images to the list
-        pprev_image_data = pprev_image_data.unsqueeze(0)
+        next_image_data = next_image_data.unsqueeze(0)
         prev_image_data = prev_image_data.unsqueeze(0)
         target_image_data = target_image_data.unsqueeze(0)
-        concat_input = torch.cat((pprev_image_data, prev_image_data, target_image_data), 1).cuda()
+        concat_input = torch.cat((prev_image_data, target_image_data, next_image_data), 1).cuda()
         concat_input_list.append(concat_input)
+
 
     # Convert lists to tensors
     concat_input = torch.cat(concat_input_list, 0).cuda()  # Concatenate images along batch axis

@@ -228,6 +228,7 @@ class DSTA_STD_HrNet(BaseModel):
         # prior = distributions.MultivariateNormal(torch.zeros(2) + 0.5, torch.eye(2))
         self.flow = RealNVP()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        # self.fc = nn.Conv2d(in_channels=48, out_channels=2048, kernel_size=1)
         self.fc_coord = Linear(48, self.num_joints * self.embed_dim_ratio)
         self.joint_ordor =  [1,2,0,0,0,3,6,4,7,5,8,9,12,10,13,11,14]
 
@@ -237,6 +238,7 @@ class DSTA_STD_HrNet(BaseModel):
         batch_size = x.shape[0]
         x = torch.cat(x.split(3, dim=1), 0)
         feat = self.preact(x)
+        # feat = self.fc(feat)
         # print(feat.shape)
         # exit()
         feat = self.avg_pool(feat).reshape(batch_size * self.num_frame, -1)
@@ -251,12 +253,12 @@ class DSTA_STD_HrNet(BaseModel):
         feat_S = feat_S + self.Spatial_pos_embed
         feat_S = rearrange(feat_S, 'b g n c -> (b g) n c')
         for blk in self.Spatial_blocks:
-            feat_S = blk(feat_S)  
+            feat_S = blk(feat_S)
         feat_S = self.Spatial_norm(feat_S)
         feat_S = rearrange(feat_S, '(b g) n c  -> b g n c', g=5)
         feat_S = rearrange(feat_S, 'b g n c ->b (g n) c')
         feat_S = torch.concat([feat_S, unused_keypoint_token], dim=1)
-        
+
 
         #TD
         feat_T = rearrange(feat, 'f b p c -> (b p) f c')

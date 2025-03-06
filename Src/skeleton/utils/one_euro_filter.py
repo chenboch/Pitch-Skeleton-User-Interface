@@ -74,7 +74,7 @@ def exponential_smoothing(alpha: torch.Tensor, x: torch.Tensor, prev: torch.Tens
 
 
 class OneEuroFilterTorch:
-    def __init__(self, dx0=0.0, min_cutoff=0.15, beta=0.3, d_cutoff=0.5, device='cuda'):
+    def __init__(self, dx0=0.0, min_cutoff=0.1, beta=0.3, d_cutoff=0.5, device='cuda'):
         """
         初始化 One Euro Filter（PyTorch 版本）
 

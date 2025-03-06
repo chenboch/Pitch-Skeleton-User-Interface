@@ -12,6 +12,10 @@ from .Pose2DTab.Camera_Widget.camera_widget import (
 from .Pose2DTab.Video_Widget.video_widget import (
     PoseVideoTabControl as Pose2DVideoTabControl
 )
+
+from .Pose2DTab.Pitch_Widget.video_widget import (
+    PoseVideoTabControl as Pose2DSyncVideoTabControl
+)
 # from .Pose2DTab.Pitch_Widget.pitch_widget import (
 #     PosePitchTabControl as Pose2DPitchTabControl
 # )
@@ -26,16 +30,16 @@ from .ui_utils import *
 __all__ = [
     # CV 功能模組
     'cv_control', 'Camera', 'VideoCaptureThread', 'VideoWriterThread', 'VideoToImagesThread',
-    
+
     # Pose2D 功能模組
     'Pose2DCameraTabControl', 'Pose2DVideoTabControl', 'Pose2DPitchTabControl',
-    
+
     # Pose3D 功能模組
     'Pose3DVideoTabControl',
-    
+
     # 工具模組
     'ImageDrawer', 'Timer', 'ui_utils',
-    
+
     # 主 UI
     'Main_UI',
 ]

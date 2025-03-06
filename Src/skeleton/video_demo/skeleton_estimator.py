@@ -167,7 +167,7 @@ class PoseEstimater(object):
             (pl.col("frame_number") == frame_num) &
             (pl.col("track_id") == self._track_id)
         )["keypoints"][0].to_list()
-        update_keypoint[correct_kpt_idx] = [x, y] + update_keypoint[correct_kpt_idx][2:]
+        update_keypoint[correct_kpt_idx] = [x, y, 0.9, 1.0]
 
         self._person_df = self._person_df.with_columns(
             pl.when(
