@@ -212,13 +212,13 @@ class VideoLoader:
         if model_name == "vit-pose":
             save_location = os.path.join(output_folder, f"{self.video_name}_vitpose.mp4")
 
-        video_writer = cv2.VideoWriter(save_location, cv2.VideoWriter_fourcc(*'mp4v'), self.video_fps*2, self.video_size)
+        video_writer = cv2.VideoWriter(save_location, cv2.VideoWriter_fourcc(*'mp4v'), self.video_fps, self.video_size)
         for frame_num, frame in enumerate(self.video_frames):
             # img_path =  os.path.join(img_folder, f"{frame_num:08d}.jpg" )
             # cv2.imwrite(img_path, frame)
-            image = self.image_drawer.drawInfo(img = frame, frame_num = frame_num)
-            # if frame_num % 2 == 0:
-            video_writer.write(image)
+            if frame_num % 4 == 0:
+                image = self.image_drawer.drawInfo(img = frame, frame_num = frame_num)
+                video_writer.write(image)
 
         video_writer.release()
         print("Store video success")
