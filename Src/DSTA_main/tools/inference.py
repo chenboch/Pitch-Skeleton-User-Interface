@@ -92,9 +92,12 @@ def inference_topdown(model, image_list: np.ndarray, person_data, frame_num :int
 
     for track_id in range(batch_size):
         bbox = person_data[track_id]
-        prev_idx  = min(0, len(image_list) -1)
-        cur_idx = min(1, len(image_list) - 1)
-        next_idx  = min(2, len(image_list) - 1)
+        # prev_idx  = max(0, len(image_list) -1)
+        # cur_idx = max(1, len(image_list) - 1)
+        # next_idx  = max(2, len(image_list) - 1)
+        prev_idx  = 1
+        cur_idx = 2
+        next_idx  = 3
 
         center, scale = box2cs(bbox, aspect_ratio)
         # scale = scale * 1.5

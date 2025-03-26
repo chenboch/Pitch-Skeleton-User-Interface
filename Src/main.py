@@ -19,7 +19,7 @@ class Main(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         # setting camera
-        self.wrapper = Wrapper(track_model="ByteTracker", pose_model="vi-pose")
+        self.wrapper = Wrapper(track_model="ByteTracker", pose_model="vit-pose")
         self.init_tabs()
 
     def init_tabs(self):

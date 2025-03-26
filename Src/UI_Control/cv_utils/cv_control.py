@@ -124,6 +124,7 @@ class VideoLoader:
         self.is_loading = True
         self.v_t = VideoToImagesThread(self.video_path)
         self.v_t.emit_signal.connect(self.video_to_frame)
+        
         self.v_t.start()
 
     def video_to_frame(self, video_frames, fps, count):

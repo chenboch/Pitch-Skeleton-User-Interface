@@ -3,8 +3,10 @@ from mmpose.apis import init_model
 from mmpose.apis import inference_topdown as vitpose_inference_topdown
 from mmpose.structures import (merge_data_samples)
 from mmpose.structures.pose_data_sample import InstanceData
-from DSTA_main.tools import init_pose_model
-from DSTA_main.tools import inference_topdown as dstapose_inference_topdown
+# from DSTA_main.tools import init_pose_model
+# from DSTA_main.tools import inference_topdown as dstapose_inference_topdown
+from FAMI_Pose.tools import init_pose_model
+from FAMI_Pose.tools import inference_topdown as dstapose_inference_topdown
 from skeleton.utils import FPSTimer
 import numpy as np
 import torch
@@ -37,7 +39,7 @@ class Pose2DEstimator(object):
             _type_: _description_
         """
         if self._model_name == "vit-pose":
-            image = image_array[-1]
+            image = image_array[2]
             # self.fps_timer.tic()
             pose_results = vitpose_inference_topdown(self.pose2d_estimator, image, bbox)
             # self.fps_timer.toc()
@@ -88,17 +90,37 @@ class Pose2DEstimator(object):
         args = parser.parse_args()
         return args
 
+    # def set_dstapose_parser(self) -> ArgumentParser:
+        # root_dir = os.path.abspath('../')
+        # parser = ArgumentParser(description='Inference pose estimation Network')
+
+        # parser.add_argument('--cfg', help='experiment configure file name', required=False, type=str,
+        #                     # Src\DSTA_main\configs\posetimation\DSTA\posetrack17\model_inference_hrnet.yaml
+        #                     default="Src/DSTA_main/configs/posetimation/DSTA/posetrack17/model_inference.yaml")
+        # parser.add_argument('--PE_Name', help='pose estimation model name', required=False, type=str,
+        #                     default='DSTA')
+        # parser.add_argument('-weight', help='model weight file', required=False, type=str
+        #                     , default='Db/checkpoints/epoch_199_state.pth')
+        # parser.add_argument('--gpu_id', default='0')
+        # parser.add_argument('opts', help="Modify config options using the command-line", default=None, nargs=REMAINDER)
+
+        # # philly
+        # args = parser.parse_args()
+        # args.rootDir = root_dir
+        # args.cfg = os.path.abspath(os.path.join(args.rootDir, args.cfg))
+        # args.weight = os.path.abspath(os.path.join(args.rootDir, args.weight))
+        # return args
+
     def set_dstapose_parser(self) -> ArgumentParser:
         root_dir = os.path.abspath('../')
         parser = ArgumentParser(description='Inference pose estimation Network')
-
         parser.add_argument('--cfg', help='experiment configure file name', required=False, type=str,
                             # Src\DSTA_main\configs\posetimation\DSTA\posetrack17\model_inference_hrnet.yaml
-                            default="Src/DSTA_main/configs/posetimation/DSTA/posetrack17/model_inference.yaml")
+                            default="Src/FAMI_Pose/configs/Alignment/posetrack17/model_inference.yaml")
         parser.add_argument('--PE_Name', help='pose estimation model name', required=False, type=str,
                             default='DSTA')
         parser.add_argument('-weight', help='model weight file', required=False, type=str
-                            , default='Db/checkpoints/epoch_199_state.pth')
+                            , default='Db/checkpoints/epoch_50_state.pth')
         parser.add_argument('--gpu_id', default='0')
         parser.add_argument('opts', help="Modify config options using the command-line", default=None, nargs=REMAINDER)
 
@@ -108,6 +130,7 @@ class Pose2DEstimator(object):
         args.cfg = os.path.abspath(os.path.join(args.rootDir, args.cfg))
         args.weight = os.path.abspath(os.path.join(args.rootDir, args.weight))
         return args
+
 
     @property
     def model_name(self):

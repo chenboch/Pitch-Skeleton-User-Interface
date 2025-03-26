@@ -205,8 +205,25 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         fps = 0
         frame_num = self.ui.frame_slider.value()
         self.ui.frame_num_label.setText(f'{frame_num}/{len(self.video_loader.video_frames) - 1}')
-        frame = self.video_loader.get_video_image(frame_num)
-        fps= self.pose_estimater.detect_keypoints(frame, frame_num)
+
+        total_frames = self.video_loader.total_frames
+        frames = []
+        # 前後各取 2 張 frame
+        for i in range(frame_num - 2, frame_num + 3):
+            if i < 0:
+                frame_i = self.video_loader.get_video_image(0)
+            elif i >= total_frames:
+                frame_i = self.video_loader.get_video_image(total_frames - 1)
+            else:
+                frame_i = self.video_loader.get_video_image(i)
+
+            frames.append(frame_i)
+
+        # 傳給 pose_estimator
+        fps = self.pose_estimater.detect_keypoints(frames, frame_num)
+
+        # frame = self.video_loader.get_video_image(frame_num)
+        # fps= self.pose_estimater.detect_keypoints(frame, frame_num)
         self.ui.fps_info_label.setText(f"{fps:02d}")
 
         if self.pose_estimater.track_id is not None:
@@ -225,8 +242,14 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
 
     def toggle_detect(self):
         self.ui.show_skeleton_checkbox.setChecked(True)
-        frame = self.video_loader.get_video_image(0)
-        fps = self.pose_estimater.detect_keypoints(frame, 0)
+        frames = []
+        for i in range(0,5):
+            if i <=2:
+                frames.append(self.video_loader.get_video_image(0))
+            else:
+                frames.append(self.video_loader.get_video_image(i-2))
+
+        fps = self.pose_estimater.detect_keypoints(frames, 0)
         self.ui.play_btn.click()
 
     def toggle_select(self, state:int):

@@ -6,9 +6,9 @@
 # )
 # from .cv_utils.cv_control import Camera
 from .Main_UI import *
-from .Pose2DTab.Camera_Widget.camera_widget import (
-    PoseCameraTabControl as Pose2DCameraTabControl
-)
+# from .Pose2DTab.Camera_Widget.camera_widget import (
+#     PoseCameraTabControl as Pose2DCameraTabControl
+# )
 from .Pose2DTab.Video_Widget.video_widget import (
     PoseVideoTabControl as Pose2DVideoTabControl
 )

@@ -122,14 +122,22 @@ def merge_person_data(pred_instances, track_ids: list, model_name:str, frame_num
     return new_person_df
 
 
-def smooth_keypoints(person_df: pl.DataFrame, new_person_df: pl.DataFrame, track_ids: list) -> pl.DataFrame:
+import torch
+import polars as pl
+import numpy as np
+import cv2  # 用於計算光流
+
+def smooth_keypoints(person_df: pl.DataFrame, new_person_df: pl.DataFrame, track_ids: list,
+                    images: np.ndarray) -> pl.DataFrame:
     """
-    平滑 2D 關鍵點數據。
+    平滑 2D 關鍵點數據，結合光流和 One Euro Filter。
 
     Args:
         person_df (pl.DataFrame): 包含上一幀數據的 DataFrame。
         new_person_df (pl.DataFrame): 包含當前幀數據的 DataFrame。
         track_ids (list): 要處理的 track_id 列表。
+        curr_image (np.ndarray): 當前幀圖像 (H, W, C)。
+        prev_image (np.ndarray, optional): 前一幀圖像 (H, W, C)。
 
     Returns:
         pl.DataFrame: 平滑後的 DataFrame。
@@ -137,11 +145,17 @@ def smooth_keypoints(person_df: pl.DataFrame, new_person_df: pl.DataFrame, track
     smooth_filter_dict = {}
 
     # 當前幀無數據時，返回原始 new_person_df
-    if person_df.is_empty():
+    if person_df.is_empty() or new_person_df.is_empty():
         return new_person_df
 
     # 獲取上一幀的 frame_number
     last_frame_number = person_df.select("frame_number").tail(1).item()
+
+    # 如果有前一幀圖像，計算光流
+    prev_image = images[1]
+    curr_image = images[2]
+
+    flow = compute_optical_flow(prev_image, curr_image)
 
     for track_id in track_ids:
         # 選擇上一幀和當前幀的數據
@@ -165,16 +179,39 @@ def smooth_keypoints(person_df: pl.DataFrame, new_person_df: pl.DataFrame, track
         curr_kpts = torch.tensor(curr_person_data.select("keypoints").row(0)[0], device='cuda')
         smoothed_kpts = []
 
-        # 使用濾波器平滑每個關節點
+        # 使用光流預測並融合
         for joint_idx, (pre_kpt, curr_kpt) in enumerate(zip(pre_kpts, curr_kpts)):
             pre_kptx, pre_kpty = pre_kpt[0], pre_kpt[1]
             curr_kptx, curr_kpty, curr_conf, curr_label = curr_kpt[0], curr_kpt[1], curr_kpt[2], curr_kpt[3]
 
-            if all([pre_kptx.item() != 0, pre_kpty.item() != 0, curr_kptx.item() != 0, curr_kpty.item() != 0]):
-                # 為每個關節應用單獨的濾波器
-                curr_kptx = smooth_filter_dict[track_id][joint_idx](curr_kptx, pre_kptx)
-                curr_kpty = smooth_filter_dict[track_id][joint_idx](curr_kpty, pre_kpty)
-            smoothed_kpts.append([curr_kptx.cpu().item(), curr_kpty.cpu().item(), curr_conf.item(), curr_label.item()])
+            # 如果前一幀和當前幀坐標有效，且有光流數據
+            if (flow is not None and
+                all([pre_kptx.item() != 0, pre_kpty.item() != 0, curr_kptx.item() != 0, curr_kpty.item() != 0])):
+                # 從光流場提取運動向量
+                y, x = int(pre_kpty.item()), int(pre_kptx.item())
+                if 0 <= y < flow.shape[0] and 0 <= x < flow.shape[1]:  # 檢查邊界
+                    dx, dy = flow[y, x]
+                    # 光流預測位置
+                    pred_kptx = pre_kptx + dx
+                    pred_kpty = pre_kpty + dy
+                    # 融合光流預測和原始估計 (加權平均)
+                    alpha = 0.3  # 光流權重，可調整
+                    fused_kptx = alpha * pred_kptx + (1 - alpha) * curr_kptx
+                    fused_kpty = alpha * pred_kpty + (1 - alpha) * curr_kpty
+                else:
+                    fused_kptx, fused_kpty = curr_kptx, curr_kpty  # 超出邊界時使用原始值
+            else:
+                fused_kptx, fused_kpty = curr_kptx, curr_kpty  # 無光流時使用原始值
+
+            # 使用 One Euro Filter 平滑融合後的坐標
+            if all([pre_kptx.item() != 0, pre_kpty.item() != 0, fused_kptx.item() != 0, fused_kpty.item() != 0]):
+                smoothed_kptx = smooth_filter_dict[track_id][joint_idx](fused_kptx, pre_kptx)
+                smoothed_kpty = smooth_filter_dict[track_id][joint_idx](fused_kpty, pre_kpty)
+            else:
+                smoothed_kptx, smoothed_kpty = fused_kptx, fused_kpty
+
+            smoothed_kpts.append([smoothed_kptx.cpu().item(), smoothed_kpty.cpu().item(),
+                                 curr_conf.item(), curr_label.item()])
 
         # 更新當前幀的數據
         new_person_df = new_person_df.with_columns(
@@ -185,6 +222,23 @@ def smooth_keypoints(person_df: pl.DataFrame, new_person_df: pl.DataFrame, track
         )
 
     return new_person_df
+
+def compute_optical_flow(prev_image, curr_image, scale_factor=0.25):
+    # 轉為灰度並縮小
+    prev_gray = cv2.cvtColor(prev_image, cv2.COLOR_BGR2GRAY)
+    curr_gray = cv2.cvtColor(curr_image, cv2.COLOR_BGR2GRAY)
+    h, w = prev_gray.shape
+    small_prev = cv2.resize(prev_gray, (int(w * scale_factor), int(h * scale_factor)), interpolation=cv2.INTER_AREA)
+    small_curr = cv2.resize(curr_gray, (int(w * scale_factor), int(h * scale_factor)), interpolation=cv2.INTER_AREA)
+
+    # 計算光流
+    flow = cv2.calcOpticalFlowFarneback(small_prev, small_curr, None,
+                                        pyr_scale=0.5, levels=2, winsize=10,
+                                        iterations=2, poly_n=5, poly_sigma=1.1, flags=0)
+
+    # 將光流縮放回原始尺寸
+    flow = cv2.resize(flow, (w, h)) / scale_factor
+    return flow
 
 def update_keypoint_buffer(person_df:pl.DataFrame, track_id:int, kpt_id: int,frame_num:int, window_length=1, polyorder=2)->list:
 

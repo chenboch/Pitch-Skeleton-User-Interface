@@ -174,7 +174,7 @@ class ImageDrawer():
 
         return img
 
-    def draw_points(self, image, points, track_idx, color_palette='gist_rainbow', palette_samples=10, confidence_threshold=0.0):
+    def draw_points(self, image, points, track_idx, color_palette='gist_rainbow', palette_samples=10, confidence_threshold=0.3):
         """
         Draws `points` on `image`.
 
@@ -214,7 +214,7 @@ class ImageDrawer():
         return image
 
     def draw_skeleton(self, image, points, skeleton, color_palette='Set2', palette_samples='jet', person_index=0,
-                    confidence_threshold=0.0):
+                    confidence_threshold=0.3):
         """
         Draws a `skeleton` on `image`.
 
