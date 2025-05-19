@@ -8,14 +8,13 @@ from torch.profiler import profile, ProfilerActivity
 import polars as pl
 
 class PoseEstimater(object):
-    def __init__(self, wrapper: Wrapper =None, model_name: str = "vi-pose"):
+    def __init__(self, wrapper: Wrapper =None):
         self.logger = logging.getLogger(self.__class__.__name__)  # 獲取當前類的日誌對象
         self.logger.info("PoseEstimater initialized with wrapper.")
         self.detector = wrapper.detector
         self.tracker = wrapper.tracker
         self.pose2d_estimator = wrapper.pose2d_estimator
-        self.pose2d_estimator.model_name = model_name
-        self._model_name = model_name
+        self._model_name =  self.pose2d_estimator.model_name
         self.pose3d_estimator = wrapper.pose3d_estimator
         self._person_df = pl.DataFrame()
         self._bbox_buffer = []
@@ -25,51 +24,48 @@ class PoseEstimater(object):
         self._pitch_hand_id = 10
         self.processed_frames = set()
         self.fps_timer = FPSTimer()
-        self.image_buffer = queue.Queue(3)
+        self.image_buffer = queue.Queue(5)
         self.kpt_buffer = []
 
-    def detect_keypoints(self, image:np.ndarray, frame_num:int = None):
-        if self.image_buffer.full():  # 如果队列满了
-            self.image_buffer.get()  # 弹出队列最前面的元素
-        self.image_buffer.put(image)  # 将新元素加入队列
-
+    def detect_keypoints(self, images:np.ndarray, frame_num:int = None):
         if not self._is_detect:
             return 0
         self.fps_timer.tic()
+        # print(type(images))
+        # print(len(images))
+        # self.fps_timer.tic()
+        bboxes = self.detector.process_image(images[2])
+        # self.fps_timer.toc()
+        # print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
+        online_targets = self.tracker.process_bbox(images[2], bboxes)
+        online_bbox, track_ids = filter_valid_targets(online_targets, self._track_id)
+        # self._bbox_buffer = [online_bbox, track_ids]
 
-        if frame_num not in self.processed_frames:
-            if frame_num % 5 == 0:
-                bboxes = self.detector.process_image(image)
-                online_targets = self.tracker.process_bbox(image, bboxes)
-                online_bbox, track_ids = filter_valid_targets(online_targets, self._track_id)
-                self._bbox_buffer = [online_bbox, track_ids]
-            else:
-                online_bbox, track_ids = self._bbox_buffer
+        # if len(online_bbox) == 0 or len(track_ids) == 0:
+        #     self.processed_frames.add(frame_num)
+        #     self.fps_timer.toc()
+        #     return  int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0
+        # self.fps_timer.tic()
+        pred_instances = self.pose2d_estimator.process_image(np.array(images), online_bbox)
+        # self.fps_timer.toc()
+        # print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
 
-            pred_instances = self.pose2d_estimator.process_image(np.array(list(self.image_buffer.queue)), online_bbox)
-            new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name,frame_num)
-            new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids)
+        new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name)
+        new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids, images)
+        self._person_df = new_person_df
 
-            self._person_df = pl.concat([self._person_df, new_person_df])
-            self.processed_frames.add(frame_num)
         self.fps_timer.toc()
-
         if self._joint_id is not None and self._track_id is not None:
-            self.kpt_buffer = update_keypoint_buffer(self._person_df, self._track_id, self._joint_id, frame_num)
-
-
+            self.kpt_buffer = update_keypoint_buffer(self._person_df, self._track_id, self._joint_id, self.kpt_buffer)
         return  int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0
-
 
     @property
     def model_name(self):
         return self._model_name
 
-
     @model_name.setter
     def model_name(self, model_name):
         self._model_name = model_name
-
 
     @property
     def track_id(self):
@@ -79,7 +75,7 @@ class PoseEstimater(object):
     @track_id.setter
     def track_id(self, value):
         """設置追蹤的 track_id，同時打印日誌。"""
-        if value != self._track_id:
+        if value is not None and value != self._track_id:
             self._track_id = value
             self.logger.info("Person ID set to: %d", self._track_id)
 
@@ -91,9 +87,11 @@ class PoseEstimater(object):
     @joint_id.setter
     def joint_id(self, value):
         """設置追蹤的joint_id，同時打印日誌。"""
-        if value != self._joint_id:
+        if value is not None and value != self._joint_id:
             self._joint_id = value
+            self.clear_keypoint_buffer()
             self.logger.info("當前關節點: %d", self._joint_id)
+
 
     @property
     def pitch_hand_id(self):
@@ -130,24 +128,22 @@ class PoseEstimater(object):
             return
         # if load_df != self._person_df:
         self._person_df = load_df
-        self.processed_frames = {frame_num for frame_num in self._person_df['frame_number']}
+        self.processed_frames = {frame_num for frame_num in range (0, max(self._person_df['frame_number']))}
         self.logger.info("讀取資料的狀態: %s", not load_df.is_empty())
 
-    def get_person_df(self, frame_num=None, is_select=False, is_kpt=False) ->pl.DataFrame:
+    def get_person_df(self, is_select=False, is_kpt=False) ->pl.DataFrame:
         if self._person_df.is_empty():
             return pl.DataFrame([])
 
         # 條件篩選
         condition = pl.Series([True] * len(self._person_df))
-        if frame_num is not None:
-            condition &= self._person_df["frame_number"] == frame_num
 
         if is_select and self._track_id is not None:
             condition &= self._person_df["track_id"] == self._track_id
 
         data = self._person_df.filter(condition)
         if data.is_empty():
-            return None
+            return pl.DataFrame([])
 
         if is_kpt:
             data = data["keypoints"].to_list()[0]  # 獲取第一個值
@@ -161,7 +157,7 @@ class PoseEstimater(object):
             (pl.col("frame_number") == frame_num) &
             (pl.col("track_id") == self._track_id)
         )["keypoints"][0].to_list()
-        update_keypoint[correct_kpt_idx] = [x, y] + update_keypoint[correct_kpt_idx][2:]
+        update_keypoint[correct_kpt_idx] = [x, y, 0.9, 1.0]
 
         self._person_df = self._person_df.with_columns(
             pl.when(

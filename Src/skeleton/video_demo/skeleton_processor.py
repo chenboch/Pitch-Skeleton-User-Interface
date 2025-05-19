@@ -78,6 +78,10 @@ def haple2posetrack(keypoint):
     y_mhead = (keypoint[17][1] + keypoint[18][1]) / 2.0
     s_mhead = (keypoint[17][2] + keypoint[18][2]) / 2.0
     data[17] = [ x_mhead, y_mhead, s_mhead, False]
+    x_butt = (keypoint[11][0] + keypoint[12][0]) / 2.0
+    y_butt = (keypoint[11][1] + keypoint[12][1]) / 2.0
+    s_butt = (keypoint[11][2] + keypoint[12][2]) / 2.0
+    data[18] = [x_butt, y_butt, s_butt, False]
     return data
 
 def merge_person_data(pred_instances, track_ids: list, model_name:str, frame_num: int = None) -> pl.DataFrame:

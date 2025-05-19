@@ -37,7 +37,6 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
         self.curve_scene = QGraphicsScene()
         self.setup_components()
         self.init_var()
-        # self.ui.curve_view.setVisible(False)
 
     def init_var(self):
         self.is_play = False
@@ -218,20 +217,13 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
                 frame_i = self.video_loader.get_video_image(i)
 
             frames.append(frame_i)
-
-        # 傳給 pose_estimator
         fps = self.pose_estimater.detect_keypoints(frames, frame_num)
-
-        # frame = self.video_loader.get_video_image(frame_num)
-        # fps= self.pose_estimater.detect_keypoints(frame, frame_num)
         self.ui.fps_info_label.setText(f"{fps:02d}")
 
         if self.pose_estimater.track_id is not None:
-            # self.pose_analyzer.addAnalyzeInfo(frame_num)
-            # self.graph_plotter.updateGraph(frame_num)
             self.kpt_table.importDataToTable(frame_num)
-        if frame_num == self.video_loader.total_frames - 1:
-            self.video_loader.save_video(self.model_name)
+        # if frame_num == self.video_loader.total_frames - 1:
+        #     self.video_loader.save_video(self.model_name)
         self.update_frame(frame_num)
 
     def update_frame(self, frame_num:int):
@@ -301,14 +293,10 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
             self.image_drawer.set_show_angle_info(False)
 
     def correctId(self):
-        before_correctId = self.ui.beforeCorrectId.value()
-        after_correctId = self.ui.afterCorrectId.value()
+        before_correctId = self.ui.before_correct_id.value()
+        after_correctId = self.ui.after_correct_id.value()
         self.pose_estimater.correct_person_id(before_correctId, after_correctId)
         self.update_frame(self.ui.frame_slider.value())
 
     def turn_off_all_checkbox(self):
-        # self.ui.select_kpt_checkbox.setCheckState(0)
-        # self.ui.select_checkbox.setCheckState(0)
         self.ui.show_skeleton_checkbox.setCheckState(0)
-        # self.ui.show_bbox_checkbox.setCheckState(0)
-        # self.ui.show_angle_checkbox.setCheckState(0)

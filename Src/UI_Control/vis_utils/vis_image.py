@@ -45,11 +45,16 @@ class ImageDrawer():
 
         # self.timer = None
 
-    def drawInfo(self, img:np.ndarray, frame_num:int=None, kpt_buffer:list = None, countdown_time:int = None):
+    def drawInfo(self, img:np.ndarray, frame_num:int=None, kpt_buffer:list = None, countdown_time:int = None, is_realtime: bool = False):
         if img is None:
             return
         image = img.copy()
-        curr_person_df = self.pose_estimater.get_person_df(frame_num = frame_num, is_select=True)
+
+        if not is_realtime:
+            curr_person_df = self.pose_estimater.get_person_df(frame_num = frame_num, is_select=True)
+        else:
+            curr_person_df = self.pose_estimater.get_person_df(is_select = True)
+
         if curr_person_df is None:
             return image
 
@@ -130,7 +135,7 @@ class ImageDrawer():
 
         # 迭代相鄰的兩個點，並畫出軌跡線
         for (f_kptx, f_kpty), (s_kptx, s_kpty) in zip(int_kpt_buffer[:-1], int_kpt_buffer[1:]):
-            cv2.line(img, (f_kptx, f_kpty), (s_kptx, s_kpty), (0, 255, 0), 5)
+            cv2.line(img, (f_kptx, f_kpty), (s_kptx, s_kpty), (0, 255, 0), 3)
 
         return img
 
@@ -203,7 +208,7 @@ class ImageDrawer():
                 np.array(plt.get_cmap(color_palette)(np.linspace(0, 1, palette_samples))) * 255
             ).astype(np.uint8)[:, -2::-1].tolist()
 
-        circle_size = max(1, min(image.shape[:2]) // 160)  # ToDo Shape it taking into account the size of the detection
+        circle_size = max(1, min(image.shape[:2]) // 200)  # ToDo Shape it taking into account the size of the detection
         # circle_size = max(2, int(np.sqrt(np.max(np.max(points, axis=0) - np.min(points, axis=0)) // 16)))
         for i, pt in enumerate(points):
             if i==3 or i==4: continue
@@ -265,7 +270,7 @@ class ImageDrawer():
             if pt1[2] > confidence_threshold and not pt1_unlabel and pt2[2] > confidence_threshold and not pt2_unlabel:
                 image = cv2.line(
                     image, (int(pt1[1]), int(pt1[0])), (int(pt2[1]), int(pt2[0])),
-                    skeleton_color , 6
+                    skeleton_color , 3
                 )
         return image
 

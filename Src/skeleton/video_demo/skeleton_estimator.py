@@ -28,10 +28,6 @@ class PoseEstimater(object):
         self.kpt_buffer = []
 
     def detect_keypoints(self, images:np.ndarray, frame_num:int = None):
-        # if self.image_buffer.full():  # 如果队列满了
-        #     self.image_buffer.get()  # 弹出队列最前面的元素
-        # self.image_buffer.put(image)  # 将新元素加入队列
-
         if not self._is_detect:
             return 0
         self.fps_timer.tic()
@@ -53,13 +49,14 @@ class PoseEstimater(object):
                 self.fps_timer.toc()
                 return  int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0
             # self.fps_timer.tic()
-            pred_instances = self.pose2d_estimator.process_image(np.array(images), online_bbox, frame_num)
+            pred_instances = self.pose2d_estimator.process_image(np.array(images), online_bbox)
             # self.fps_timer.toc()
             # print(f"tracking time: {self.fps_timer.time_interval}, fps: {int(self.fps_timer.fps) if int(self.fps_timer.fps)  < 100 else 0}")
 
             new_person_df = merge_person_data(pred_instances, track_ids, self.pose2d_estimator.model_name,frame_num)
             new_person_df = smooth_keypoints(self._person_df, new_person_df, track_ids, images)
             self._person_df = pl.concat([self._person_df, new_person_df])
+
             self.processed_frames.add(frame_num)
         self.fps_timer.toc()
         if self._joint_id is not None and self._track_id is not None:
@@ -133,7 +130,7 @@ class PoseEstimater(object):
             return
         # if load_df != self._person_df:
         self._person_df = load_df
-        self.processed_frames = {frame_num for frame_num in self._person_df['frame_number']}
+        self.processed_frames = {frame_num for frame_num in range (0, max(self._person_df['frame_number']))}
         self.logger.info("讀取資料的狀態: %s", not load_df.is_empty())
 
     def get_person_df(self, frame_num=None, is_select=False, is_kpt=False) ->pl.DataFrame:

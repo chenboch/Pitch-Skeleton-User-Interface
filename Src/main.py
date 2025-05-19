@@ -1,8 +1,8 @@
 import sys
-import PyQt5.QtOpenGL  # 這一行最關鍵
+import PyQt5.QtOpenGL
 from vispy import scene
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout
-# from UI_Control.Pose2DTab.Camera_Widget.camera_widget import PoseCameraTabControl
+from UI_Control.Pose2DTab.Camera_Widget.camera_widget import PoseCameraTabControl
 from UI_Control.Pose2DTab.Video_Widget.video_widget import PoseVideoTabControl as Pose2DVideoTabControl
 from UI_Control.Pose2DTab.Pitch_Widget.video_widget import PoseVideoTabControl as Pose2DSyncVideoTabControl
 from UI_Control.Pose3DTab.Video_Widget.video_widget import PoseVideoTabControl as Pose3DVideoTabControl
@@ -19,12 +19,12 @@ class Main(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         # setting camera
-        self.wrapper = Wrapper(track_model="ByteTracker", pose_model="vit-pose")
+        self.wrapper = Wrapper(track_model="ByteTracker", pose_model="vi-pose")
         self.init_tabs()
 
     def init_tabs(self):
-        # self.camera_tab = PoseCameraTabControl(self.wrapper)
-        # self.ui.Two_d_Tab.addTab(self.camera_tab, "2D 相機")
+        self.camera_tab = PoseCameraTabControl(self.wrapper)
+        self.ui.Two_d_Tab.addTab(self.camera_tab, "2D 相機")
         self.video_tab = Pose2DVideoTabControl(self.wrapper)
         self.ui.Two_d_Tab.addTab(self.video_tab, "2D 影片")
         self.pitch_tab = Pose2DSyncVideoTabControl()
