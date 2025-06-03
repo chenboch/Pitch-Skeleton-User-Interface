@@ -83,7 +83,10 @@ class PoseVideoTabControl(QWidget):
             return
         # 若影片正在讀取中，定時檢查讀取狀況
         if video_loader.is_loading:
-            self.ui.video_name_label.setText("讀取影片中")
+            if is_left:
+                self.ui.video_name_label.setText("讀取影片中")
+            else:
+                self.ui.video_name_label_2.setText("讀取影片中")
             QTimer.singleShot(100, lambda: self.check_video_load(video_loader, is_left))
             return
         # 影片讀取完成後更新 UI 元素

@@ -91,8 +91,6 @@ class ImageDrawer():
         cv2.line(image, (x - length, y), (x + length, y), color, thickness)
 
     def draw_grid(self, image:np.ndarray):
-        #return image:np.ndarray
-
         height, width = image.shape[:2]
         self.draw_cross(image,int(width/2),int(height/2),length=20,color=(0,0,255),thickness = 3)
         # 計算垂直線的位置
@@ -123,7 +121,7 @@ class ImageDrawer():
             color = tuple(colors[id % len(colors)])
             color = (0,255,0)
             image = cv2.rectangle(image, (x1, y1), (x2, y2), color, 4)
-            image = cv2.putText(image, str(id), (x1, y1-10), cv2.FONT_HERSHEY_COMPLEX, 1.5, color, 2)
+            # image = cv2.putText(image, str(id), (x1, y1-10), cv2.FONT_HERSHEY_COMPLEX, 1.5, color, 2)
         return image
 
     def draw_traj(self, img: np.ndarray, kpt_buffer: list):
@@ -208,13 +206,14 @@ class ImageDrawer():
                 np.array(plt.get_cmap(color_palette)(np.linspace(0, 1, palette_samples))) * 255
             ).astype(np.uint8)[:, -2::-1].tolist()
 
-        circle_size = max(1, min(image.shape[:2]) // 200)  # ToDo Shape it taking into account the size of the detection
+        circle_size = max(1, min(image.shape[:2]) // 150)  # ToDo Shape it taking into account the size of the detection
         # circle_size = max(2, int(np.sqrt(np.max(np.max(points, axis=0) - np.min(points, axis=0)) // 16)))
         for i, pt in enumerate(points):
             if i==3 or i==4: continue
             unlabel = False if pt[0] != 0 and pt[1] != 0 else True
             if pt[2] > confidence_threshold and not unlabel:
-                image = cv2.circle(image, (int(pt[1]), int(pt[ 0])), circle_size, tuple(colors[track_idx % len(colors)]), -1)
+                # image = cv2.circle(image, (int(pt[1]), int(pt[ 0])), circle_size, tuple(colors[1]), -1)
+                image = cv2.circle(image, (int(pt[1]), int(pt[ 0])), circle_size, (0,255,0), -1)
 
         return image
 

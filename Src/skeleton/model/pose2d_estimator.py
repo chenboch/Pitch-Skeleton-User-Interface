@@ -26,7 +26,8 @@ class Pose2DEstimator(object):
             self.pose2d_estimator, self.pose2d_cfg= init_pose_model(
                 self.pose2d_args
             )
-
+            model_name = self.pose2d_args.weight
+            self._model_name = model_name.split('\\')[-1].replace('.pth', '')
 
     def process_image(self, image_array:np.ndarray, bbox:np.array) -> list:
         """_summary_
@@ -98,7 +99,9 @@ class Pose2DEstimator(object):
         parser.add_argument('--PE_Name', help='pose estimation model name', required=False, type=str,
                             default='fami')
         parser.add_argument('-weight', help='model weight file', required=False, type=str
-                            , default='Db/checkpoints/0512_24_epoch_19_state.pth')
+                            , default='Db/checkpoints/0520_24_epoch_19_state.pth')
+                            # , default='Db/checkpoints/0531_25_epoch_19_state.pth')
+
         parser.add_argument('--gpu_id', default='0')
         parser.add_argument('opts', help="Modify config options using the command-line", default=None, nargs=REMAINDER)
 

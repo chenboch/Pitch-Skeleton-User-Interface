@@ -248,14 +248,12 @@ class VideoLoader:
         ann_folder = os.path.join("../Db/Data/annotations/train")
         img_folder = os.path.join("../Db/Data/images", self.video_name)
         output_folder = os.path.join("../Db/output", self.video_name)
-        ann_folder = os.path.join("../Db/Data/annotations/train")
-        img_folder = os.path.join("../Db/Data/images", self.video_name)
 
         os.makedirs(output_folder, exist_ok=True)
         os.makedirs(img_folder, exist_ok=True)
         os.makedirs(ann_folder,exist_ok=True)
 
-        json_path = os.path.join(output_folder, f"{self.video_name}_famipose.json")
+        json_path = os.path.join(output_folder, f"{self.video_name}_{model_name}.json")
         if model_name == "vit-pose":
             json_path = os.path.join(output_folder, f"{self.video_name}_vitpose.json")
         json_ann_path =  os.path.join(ann_folder, f"{self.video_name}.json")
@@ -276,12 +274,12 @@ class VideoLoader:
         for frame_num, frame in enumerate(self.video_frames):
             # if frame_num % 2 == 0:
             video_writer.write(frame)
-
+        print(model_name)
         video_writer.release()
         # save_location = os.path.join(output_folder, f"{formatted_path}_{self.video_name}_Sk26.mp4")
-        save_location = os.path.join(output_folder, f"{self.video_name}_famipose.mp4")
+        save_location = os.path.join(output_folder, f"{self.video_name}_{model_name}.mp4")
         if model_name == "vit-pose":
-            save_location = os.path.join(output_folder, f"{self.video_name}_vitpose.mp4")
+            save_location = os.path.join(output_folder, f"{self.video_name}_{model_name}.mp4")
 
         video_writer = cv2.VideoWriter(save_location, cv2.VideoWriter_fourcc(*'mp4v'), self.video_fps, self.video_size)
         for frame_num, frame in enumerate(self.video_frames):

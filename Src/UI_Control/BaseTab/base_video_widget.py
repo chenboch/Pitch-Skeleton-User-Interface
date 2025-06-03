@@ -222,8 +222,8 @@ class BasePoseVideoTab(QWidget, AbstractPoseBase):
 
         if self.pose_estimater.track_id is not None:
             self.kpt_table.importDataToTable(frame_num)
-        # if frame_num == self.video_loader.total_frames - 1:
-        #     self.video_loader.save_video(self.model_name)
+        if frame_num == self.video_loader.total_frames - 1:
+            self.video_loader.save_video(self.model_name)
         self.update_frame(frame_num)
 
     def update_frame(self, frame_num:int):
